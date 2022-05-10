@@ -16,18 +16,18 @@ log:
   max_age: 30
   max_backups: 7
 mysql:
-  host: "127.0.0.1"
+  host: "175.27.226.48"
   port: 3306
   user: "root"
-  password: "123456"
+  password: "2366269957@qq.com"
   dbname: "douyin"
   max_conns: 200
   max_idle_conns: 50
 redis:
-  host: "127.0.0.1"
+  host: "175.27.226.48"
   port: 6379
   db: 0
-  password: ""
+  password: "2366269957@qq.com"
   poolsize: 1
 
 snowflake:

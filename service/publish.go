@@ -8,13 +8,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/qiniu/go-sdk/v7/auth/qbox"
-	"github.com/qiniu/go-sdk/v7/storage"
-	"github.com/spf13/viper"
 	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/qiniu/go-sdk/v7/auth/qbox"
+	"github.com/qiniu/go-sdk/v7/storage"
+	"github.com/spf13/viper"
 )
 
 /**

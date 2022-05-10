@@ -21,3 +21,6 @@
 go.work
 
 .idea
+
+# 日志文件
+web_log

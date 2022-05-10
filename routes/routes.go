@@ -3,26 +3,28 @@ package routes
 import (
 	"BytesDanceProject/controller"
 	"BytesDanceProject/logger"
-	"BytesDanceProject/middlewares"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
-func Setup(mode string)*gin.Engine{
+func Setup(mode string) *gin.Engine {
 	//如果设置mode为release则设置gin为该模式
-	if mode == gin.ReleaseMode{
+	if mode == gin.ReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
 	r.Static("/static", "./public")
 	//r.Use(logger.GinLogger(),logger.GinRecovery(true),middlewares.RateLimitMiddleware(time.Second,1))
-	r.Use(logger.GinLogger(),logger.GinRecovery(true))
+	r.Use(logger.GinLogger(), logger.GinRecovery(true))
 
-
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pang")
+	})
 
 	//设置一个路由组
-	apiRouter  := r.Group("/douyin")
-	apiRouter .Use(middlewares.JWTAuthMiddleware())
+	apiRouter := r.Group("/douyin")
+	//apiRouter.Use(middlewares.JWTAuthMiddleware())//登录验证
 	{
 		// basic apis
 		apiRouter.GET("/feed/", controller.Feed)
@@ -43,7 +45,6 @@ func Setup(mode string)*gin.Engine{
 		apiRouter.GET("/relation/follow/list/", controller.FollowList)
 		apiRouter.GET("/relation/follower/list/", controller.FollowerList)
 	}
-
 
 	return r
 }

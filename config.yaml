@@ -19,7 +19,7 @@ mysql:
   host: "127.0.0.1"
   port: 3306
   user: "root"
-  password: "2366269957@qq.com"
+  password: "123456"
   dbname: "douyin"
   max_conns: 200
   max_idle_conns: 50
@@ -29,3 +29,13 @@ redis:
   db: 0
   password: ""
   poolsize: 1
+
+snowflake:
+  start_time: "2022-05-04"
+  machine_id: 1
+
+qiniuyun:
+  access_key: "hSzhVkZAfvUpak0luGIv8NAcKGCSp3ZcQS5OhDM7"
+  secret_key: "PrwIY_MUaX7ItGN-KabCoxbBA9Z0wlw0eROdawLh"
+  domain: "rbf4i2qku.hn-bkt.clouddn.com"
+  bucket: "video-test-dijizai"

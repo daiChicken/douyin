@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+
 type UserListResponse struct {
 	Response
 	UserList []User `json:"user_list"`

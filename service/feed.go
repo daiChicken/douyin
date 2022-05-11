@@ -12,8 +12,8 @@ import (
  * @description
  */
 
-// GetVideoList 获取视频列表
-func GetVideoList(videoCount int) (*[]model.Video, error) {
+// ListVideos 获取视频列表
+func ListVideos(videoCount int) (*[]model.Video, error) {
 
 	videoList, err := mysql.ListVideo(videoCount)
 	if err != nil {

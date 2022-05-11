@@ -30,9 +30,6 @@ redis:
   password: ""
   poolsize: 1
 
-snowflake:
-  start_time: "2022-05-04"
-  machine_id: 1
 
 qiniuyun:
   access_key: "hSzhVkZAfvUpak0luGIv8NAcKGCSp3ZcQS5OhDM7"

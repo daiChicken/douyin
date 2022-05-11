@@ -32,7 +32,6 @@ func Feed(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(videoList) //model.Video
 
 	//返回响应
 	c.JSON(http.StatusOK, FeedResponse{

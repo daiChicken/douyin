@@ -23,7 +23,7 @@ func ListVideo(videoCount int) (*[]model.Video, error) {
 	return &videoList, nil
 }
 
-// InsertVideo 插入一条video记录
+// InsertVideo 插入一条video记录 id为主键自增
 func InsertVideo(v model.Video) error {
 	sqlStr := `INSERT INTO video(author_id, play_url,cover_url,favorite_count,comment_count,is_deleted,create_time) 
 	VALUES(?,?,?,0,0,0,?)`

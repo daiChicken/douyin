@@ -99,13 +99,13 @@ func PublishList(c *gin.Context) {
 		//查询当前登录用户是否喜欢该视频。如果当前用户没有登录，则为false
 
 		video := Video{ //注意video中omitempty！！！
-			Id:            int64(originalVideo.Id), //若为0则生成json时不包含该字段
-			Author:        User{},                  //待处理
-			PlayUrl:       originalVideo.PlayUrl,   //若为空则生成json时不包含该字段
-			CoverUrl:      originalVideo.CoverUrl,  //若为空则生成json时不包含该字段
-			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段
-			CommentCount:  commentCount,            //若为0则生成json时不包含该字段
-			IsFavorite:    isFavorite,              ////若为false则生成json时不包含该字段
+			Id:            int64(originalVideo.Id),           //若为0则生成json时不包含该字段
+			Author:        User{},                            //待处理
+			PlayUrl:       "http://" + originalVideo.PlayUrl, //若为空则生成json时不包含该字段
+			CoverUrl:      originalVideo.CoverUrl,            //若为空则生成json时不包含该字段
+			FavoriteCount: favoriteCount,                     //若为0则生成json时不包含该字段
+			CommentCount:  commentCount,                      //若为0则生成json时不包含该字段
+			IsFavorite:    isFavorite,                        ////若为false则生成json时不包含该字段
 		}
 		videoList[point] = video
 		point++

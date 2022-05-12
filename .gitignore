@@ -26,4 +26,4 @@ go.work
 web_log
 
 # 隐私配置文件
-production_config.yaml
+*config.yaml

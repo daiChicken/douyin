@@ -21,3 +21,9 @@
 go.work
 
 .idea
+
+# 日志文件
+web_log
+
+# 隐私配置文件
+*config.yaml

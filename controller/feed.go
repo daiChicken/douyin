@@ -3,9 +3,11 @@ package controller
 import (
 	"BytesDanceProject/service"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type FeedResponse struct {
@@ -20,12 +22,15 @@ const maxVideoCount = 30 //一次请求最多返回的视频数
 func Feed(c *gin.Context) {
 
 	//获取参数
-	//latest_time为可选参数，限制返回视频的最新投稿时间戳，精确到秒，不填表示当前时间
-	latestTime := c.Query("latest_time") //【未处理！！！！！！！！！重要】
+	//latest_time 为可选参数，限制返回视频的最新投稿时间戳，精确到秒，不填表示当前时间
+	latestTime, err := strconv.ParseInt(c.Query("latest_time"), 10, 64)
+	if err != nil || latestTime == 0 {
+		latestTime = time.Now().Unix()
+	}
 	fmt.Println("latestTime", latestTime)
 
-	//获取视频列表
-	originalVideoList, err := service.ListVideos(maxVideoCount)
+	//获取视频列表及下一次请求的时间戳
+	originalVideoList, nextTime, err := service.ListVideos(maxVideoCount, latestTime)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -71,6 +76,6 @@ func Feed(c *gin.Context) {
 			StatusMsg:  "成功获取视频列表",
 		},
 		VideoList: videoList,
-		NextTime:  time.Now().Unix(),
+		NextTime:  nextTime,
 	})
 }

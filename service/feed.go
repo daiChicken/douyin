@@ -13,11 +13,16 @@ import (
  */
 
 // ListVideos 获取视频列表
-func ListVideos(videoCount int) (*[]model.Video, error) {
+func ListVideos(videoCount int, latestTime int64) (*[]model.Video, int64, error) {
 
-	videoList, err := mysql.ListVideo(videoCount)
+	videoList, err := mysql.ListVideoDESCByCreateTime(videoCount, latestTime)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return videoList, err
+
+	if len(*videoList) == 0 {
+		return videoList, latestTime, nil
+	}
+	nextTime := (*videoList)[len(*videoList)-1].CreateTime
+	return videoList, nextTime, err
 }

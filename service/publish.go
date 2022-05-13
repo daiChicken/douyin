@@ -6,6 +6,7 @@ import (
 	"BytesDanceProject/pkg/snowflake"
 	"BytesDanceProject/tool"
 	"context"
+	"encoding/base64"
 	"errors"
 	"mime/multipart"
 	"strconv"
@@ -43,16 +44,22 @@ func UploadVideo(file *multipart.FileHeader) (err error) {
 
 	//生成新的文件名
 	newFilename := strconv.FormatInt(snowflake.GenID(), 10) //使用雪花算法
-	newFilename = newFilename + "." + suffix                //给新的文件名加上后缀名
+	videoName := newFilename + "." + suffix                 //视频名
+	coverName := newFilename + "." + "jpg"                  //封面名
 
-	//上传视频到七牛云
-	//自定义凭证有效期（示例2小时，Expires 单位为秒，为上传凭证的有效时间）
-	putPolicy := storage.PutPolicy{
+	//上传视频和视频封面到七牛云（两个操作耦合）
+	coverFolderName := "cover"                    //七牛云中存放图片的目录名。用于与文件名拼接，组成文件路径
+	photoKey := coverFolderName + "/" + coverName //封面的访问路径，我们通过此路径在七牛云空间中定位封面
+	entry := viper.GetString("qiniuyun.bucket") + ":" + photoKey
+	encodedEntryURI := base64.StdEncoding.EncodeToString([]byte(entry))
+
+	putPolicy := storage.PutPolicy{ //上传策略
 		Scope: viper.GetString("qiniuyun.bucket"),
 	}
-	putPolicy.Expires = 7200 //示例2小时有效期
+	putPolicy.PersistentOps = "vframe/jpg/offset/1|saveas/" + encodedEntryURI //取视频第1秒的截图
+	putPolicy.Expires = 7200                                                  //上传凭证的有效时间为2小时
 	mac := qbox.NewMac(viper.GetString("qiniuyun.access_key"), viper.GetString("qiniuyun.secret_key"))
-	upToken := putPolicy.UploadToken(mac)
+	upToken := putPolicy.UploadToken(mac) //上传凭证
 
 	cfg := storage.Config{
 		Zone:          &storage.ZoneHuanan,
@@ -68,8 +75,8 @@ func UploadVideo(file *multipart.FileHeader) (err error) {
 		return err
 	}
 
-	folderName := "video"                 //七牛云中的目录名。用于与文件名拼接，组成文件路径
-	key := folderName + "/" + newFilename //文件访问路径，我们通过此路径在七牛云中定位文件
+	videoFolderName := "video"               //七牛云中的目录名。用于与文件名拼接，组成文件路径
+	key := videoFolderName + "/" + videoName //文件访问路径，我们通过此路径在七牛云空间中定位文件
 
 	err = formUploader.Put(context.Background(), &ret, upToken,
 		key, data, file.Size, &putExtra)
@@ -82,11 +89,17 @@ func UploadVideo(file *multipart.FileHeader) (err error) {
 	//生成时间戳
 	timeStamp := time.Now().Unix()
 
+	//视频url
+	playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + key
+
+	//视频封面url
+	CoverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + photoKey
+
 	authorId := 0 //此处应该获取当前登录用户的id！！！！！！！！！！
 	newVideo := model.Video{
 		AuthorId: authorId,
-		PlayUrl:  viper.GetString("qiniuyun.domain") + "/" + key,
-		CoverUrl: "",
+		PlayUrl:  playUrl,
+		CoverUrl: CoverUrl,
 		//FavoriteCount: 0,
 		//CommentCount:  0,
 		CreateTime: timeStamp,

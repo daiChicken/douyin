@@ -60,7 +60,7 @@ func InsertVideo(v model.Video) error {
 // ListVideoByAuthorId 根据作者id获取视频列表
 func ListVideoByAuthorId(authorId int) (*[]model.Video, error) {
 	//sqlStr := `select id,author_id,play_url,cover_url,favorite_count,comment_count from video where author_id =?`
-	sqlStr := `select id,author_id,play_url,cover_url from video where author_id =?`
+	sqlStr := `select id,author_id,play_url,cover_url from video where author_id =? order by create_time desc`
 	var videoList []model.Video
 	err := db.Select(&videoList, sqlStr, authorId)
 	if err != nil {

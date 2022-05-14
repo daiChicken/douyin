@@ -18,3 +18,7 @@ type Video struct {
 	CreateTime int64 `db:"create_time"`
 	IsDeleted  int   `db:"is_deleted"`
 }
+
+func (Video) TableName() string {
+	return "video"
+}

@@ -34,8 +34,8 @@ func UploadVideo(file *multipart.FileHeader) (err error) {
 	if indexOfDot < 0 {
 		return errors.New("没有获取到文件的后缀名")
 	}
-	suffix := filename[indexOfDot+1 : len(filename)] //后缀名
-	suffix = strings.ToLower(suffix)                 //后缀名统一小写处理
+	suffix := filename[indexOfDot+1:] //后缀名
+	suffix = strings.ToLower(suffix)  //后缀名统一小写处理
 
 	//判断文件是否符合视频格式
 	if !tool.IsVideoExtension(suffix) {

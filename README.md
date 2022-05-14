@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # BytesDanceProject
  
 以下 config.yaml 供参考
@@ -41,8 +40,3 @@ qiniuyun:
   domain: "xxx"
   bucket: "xxx"
 ```
-=======
-# simple-demo
-
-test
->>>>>>> 00421d61eba43517633d15c25241b35343e69650

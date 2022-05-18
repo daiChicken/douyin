@@ -2,7 +2,9 @@ package controller
 
 import (
 	"BytesDanceProject/service"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -73,7 +75,12 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 	token := username + password
-	Flag := service.Register(username, password)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost) //加密处理
+	if err != nil {
+		fmt.Println(err)
+	}
+	encodePWD := string(hash)
+	Flag := service.Register(username, encodePWD)
 	if !Flag {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},

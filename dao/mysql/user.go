@@ -9,6 +9,7 @@ package mysql
 
 import (
 	"BytesDanceProject/model"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // GetUser 获取用户信息
@@ -38,8 +39,6 @@ func InsertUser(auser model.User) error {
 func VerifyPwd(username string, pwd string) bool {
 	var user model.User
 	db.Where("username = ?", username).First(&user)
-	if user.Password == pwd {
-		return true
-	}
-	return false
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pwd))
+	return err == nil
 }

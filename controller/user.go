@@ -40,7 +40,7 @@ func UserInfo(c *gin.Context) {
 		})
 	} else {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
+			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist123"},
 		})
 	}
 }
@@ -50,10 +50,16 @@ func Login(c *gin.Context) {
 	password := c.Query("password")
 	token := username + password
 	Flag := service.VerifyLogin(username, password)
+	Id := service.FindUser(username).Id
+	newUser := User{
+		Id:   Id,
+		Name: username,
+	}
+	usersLoginInfo[token] = newUser
 	if Flag {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "Login success"},
-			UserId:   service.FindUser(username).Id,
+			UserId:   Id,
 			Token:    token,
 		})
 	} else {

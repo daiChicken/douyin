@@ -40,7 +40,7 @@ func UserInfo(c *gin.Context) {
 		})
 	} else {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist123"},
+			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist (userinfo)"},
 		})
 	}
 }

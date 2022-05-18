@@ -10,6 +10,7 @@ package mysql
 import (
 	"BytesDanceProject/model"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // GetUser 获取用户信息
@@ -22,8 +23,8 @@ func GetUser(username string) model.User {
 // IsExist 判定用户是否存在，用于能否使用该用户名进行注册操作等功能
 func IsExist(username string) bool {
 	var user model.User
-	db.Where("username = ?", username).First(&user)
-	if user.Id == 0 {
+	err := db.Where("username = ?", username).First(&user).Error
+	if err == gorm.ErrRecordNotFound {
 		return false
 	}
 	return true

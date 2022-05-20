@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strings"
 )
 
 // usersLoginInfo use map to store user info, and key is username+password for demo
@@ -33,11 +35,20 @@ type UserResponse struct {
 }
 
 func UserInfo(c *gin.Context) {
-	token := c.Query("token")
-
+	tmp := c.Request.Header.Get("Authorization")
+	token := strings.SplitN(tmp, " ", 2)[1]
 	if user, exist := usersLoginInfo[token]; exist {
+		//Id, err := service.FindUser(user.Name)
+		//fmt.Println(err)
+		//user.Id = Id.Id
+		//fmt.Println(user.Name)
+		//fmt.Println("!!!!!!")
+		//followerTable, _ := mysql.GetFollower(user.Id)
+		//user.FollowerCount = int64(len(followerTable))
+		//followTable, _ := mysql.GetFollowed(user.Id)
+		//user.FollowCount = int64(len(followTable))
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 0},
+			Response: Response{StatusCode: 0, StatusMsg: "UserInfo get"},
 			User:     user,
 		})
 	} else {
@@ -50,18 +61,18 @@ func UserInfo(c *gin.Context) {
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	token := username + password
 	Flag := service.VerifyLogin(username, password)
-	Id := service.FindUser(username).Id
+	user, _ := service.FindUser(username)
 	newUser := User{
-		Id:   Id,
+		Id:   user.Id,
 		Name: username,
 	}
+	token, _ := jwt.GenToken(username)
 	usersLoginInfo[token] = newUser
 	if Flag {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "Login success"},
-			UserId:   Id,
+			UserId:   user.Id,
 			Token:    token,
 		})
 	} else {
@@ -74,7 +85,6 @@ func Login(c *gin.Context) {
 func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	token := username + password
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost) //加密处理
 	if err != nil {
 		fmt.Println(err)
@@ -86,16 +96,17 @@ func Register(c *gin.Context) {
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 	} else {
-		Id := service.FindUser(username).Id
+		user, _ := service.FindUser(username)
 		newUser := User{
-			Id:   Id,
+			Id:   user.Id,
 			Name: username,
 		}
+		token, _ := jwt.GenToken(username)
 		usersLoginInfo[token] = newUser
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
-			UserId:   Id,
-			Token:    username + password,
+			UserId:   user.Id,
+			Token:    token,
 		})
 	}
 }

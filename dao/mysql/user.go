@@ -13,11 +13,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// GetUser 获取用户信息
-func GetUser(username string) model.User {
+// GetUser 获取用户信息(目前还有问题)
+func GetUser(username string) (model.User, error) {
 	var user model.User
-	db.Where("username = ?", username).First(&user)
-	return user
+	err := db.Where("username = ?", username).First(&user).Error
+	return user, err
 }
 
 // IsExist 判定用户是否存在，用于能否使用该用户名进行注册操作等功能

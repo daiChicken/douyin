@@ -25,11 +25,11 @@ func Register(username string, password string) bool {
 }
 
 // VerifyLogin 验证登陆
-func VerifyLogin(username string, password string) (bool) {
+func VerifyLogin(username string, password string) bool {
 	Flag := mysql.VerifyPwd(username, password)
 	return Flag
 }
 
-func FindUser(username string) model.User {
+func FindUser(username string) (model.User, error) {
 	return mysql.GetUser(username)
 }

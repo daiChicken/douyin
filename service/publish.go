@@ -26,7 +26,7 @@ import (
  */
 
 // UploadVideo 上传视频
-func UploadVideo(file *multipart.FileHeader) (err error) {
+func UploadVideo(file *multipart.FileHeader, title string) (err error) {
 
 	//获取文件的后缀名
 	filename := file.Filename                      //获取文件名
@@ -104,6 +104,7 @@ func UploadVideo(file *multipart.FileHeader) (err error) {
 		//CommentCount:  0,
 		CreateTime: timeStamp,
 		//IsDeleted: 0,
+		Title: title,
 	}
 
 	//调用dao进行存储

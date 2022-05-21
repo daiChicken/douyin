@@ -21,6 +21,9 @@ func Publish(c *gin.Context) {
 	//	return
 	//}
 
+	//获取标题
+	title := c.PostForm("title")
+
 	//获取文件
 	file, err := c.FormFile("data")
 	if err != nil {
@@ -32,7 +35,7 @@ func Publish(c *gin.Context) {
 	}
 
 	//上传文件到七牛云空间
-	err = service.UploadVideo(file)
+	err = service.UploadVideo(file, title)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -106,6 +109,7 @@ func PublishList(c *gin.Context) {
 			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段
 			CommentCount:  commentCount,            //若为0则生成json时不包含该字段
 			IsFavorite:    isFavorite,              ////若为false则生成json时不包含该字段
+			Title:         originalVideo.Title,     //若为空则生成json时不包含该字段
 		}
 		videoList[point] = video
 		point++

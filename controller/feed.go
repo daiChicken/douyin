@@ -64,6 +64,7 @@ func Feed(c *gin.Context) {
 			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段
 			CommentCount:  commentCount,            //若为0则生成json时不包含该字段
 			IsFavorite:    isFavorite,              ////若为false则生成json时不包含该字段
+			Title:         originalVideo.Title,     //若为空则生成json时不包含该字段
 		}
 		videoList[point] = video
 		point++

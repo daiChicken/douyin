@@ -16,6 +16,7 @@ type Video struct {
 	CommentCount  int    `db:"comment_count"`
 	CreateTime    int64  `db:"create_time"`
 	IsDeleted     int    `db:"is_deleted"`
+	Title         string `db:"title"`
 }
 
 func (Video) TableName() string {

@@ -38,15 +38,7 @@ func UserInfo(c *gin.Context) {
 	tmp := c.Request.Header.Get("Authorization")
 	token := strings.SplitN(tmp, " ", 2)[1]
 	if user, exist := usersLoginInfo[token]; exist {
-		//Id, err := service.FindUser(user.Name)
-		//fmt.Println(err)
-		//user.Id = Id.Id
-		//fmt.Println(user.Name)
-		//fmt.Println("!!!!!!")
-		//followerTable, _ := mysql.GetFollower(user.Id)
-		//user.FollowerCount = int64(len(followerTable))
-		//followTable, _ := mysql.GetFollowed(user.Id)
-		//user.FollowCount = int64(len(followTable))
+		user = service.GetUserInfo(user)
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "UserInfo get"},
 			User:     user,
@@ -61,18 +53,17 @@ func UserInfo(c *gin.Context) {
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	Flag := service.VerifyLogin(username, password)
-	user, _ := service.FindUser(username)
+	id, flag := service.VerifyLogin(username, password)
 	newUser := User{
-		Id:   user.Id,
+		Id:   id,
 		Name: username,
 	}
 	token, _ := jwt.GenToken(username)
 	usersLoginInfo[token] = newUser
-	if Flag {
+	if flag {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "Login success"},
-			UserId:   user.Id,
+			UserId:   id,
 			Token:    token,
 		})
 	} else {
@@ -90,22 +81,21 @@ func Register(c *gin.Context) {
 		fmt.Println(err)
 	}
 	encodePWD := string(hash)
-	Flag := service.Register(username, encodePWD)
-	if !Flag {
+	id, flag := service.Register(username, encodePWD)
+	if !flag {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 	} else {
-		user, _ := service.FindUser(username)
 		newUser := User{
-			Id:   user.Id,
+			Id:   id,
 			Name: username,
 		}
 		token, _ := jwt.GenToken(username)
 		usersLoginInfo[token] = newUser
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
-			UserId:   user.Id,
+			UserId:   id,
 			Token:    token,
 		})
 	}

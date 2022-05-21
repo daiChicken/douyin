@@ -1,6 +1,7 @@
 package service
 
 import (
+	"BytesDanceProject/controller"
 	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/model"
 )
@@ -13,23 +14,26 @@ import (
  */
 
 // Register 尝试注册
-func Register(username string, password string) bool {
+func Register(username string, password string) (int64, bool) {
 	if mysql.IsExist(username) == false {
-		_ = mysql.InsertUser(model.User{
+		Id, _ := mysql.InsertUser(model.User{
 			UserName: username,
 			Password: password,
 		})
-		return true
+		return Id, true
 	}
-	return false
+	return 0, false
 }
 
 // VerifyLogin 验证登陆
-func VerifyLogin(username string, password string) bool {
-	Flag := mysql.VerifyPwd(username, password)
-	return Flag
+func VerifyLogin(username string, password string) (int64, bool) {
+	return mysql.VerifyPwd(username, password)
 }
 
-func FindUser(username string) (model.User, error) {
-	return mysql.GetUser(username)
+func GetUserInfo(user controller.User) controller.User {
+	followerTable, _ := mysql.GetFollower(user.Id)
+	user.FollowerCount = int64(len(followerTable))
+	followTable, _ := mysql.GetFollowed(user.Id)
+	user.FollowCount = int64(len(followTable))
+	return user
 }

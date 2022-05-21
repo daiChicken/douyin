@@ -8,7 +8,7 @@ package model
  */
 
 type User struct {
-	Id        int64  `gorm:"-;primary_key;AUTO_INCREMENT"`
+	Id        int64  `gorm:"column:id;primary_key;AUTO_INCREMENT"`
 	UserName  string `gorm:"column:username"`
 	Password  string `gorm:"column:password"`
 	AvatarUrl string `gorm:"column:avatar_url"`

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"BytesDanceProject/controller"
 	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/model"
 )
@@ -30,10 +29,10 @@ func VerifyLogin(username string, password string) (int64, bool) {
 	return mysql.VerifyPwd(username, password)
 }
 
-func GetUserInfo(user controller.User) controller.User {
-	followerTable, _ := mysql.GetFollower(user.Id)
-	user.FollowerCount = int64(len(followerTable))
-	followTable, _ := mysql.GetFollowed(user.Id)
-	user.FollowCount = int64(len(followTable))
-	return user
+func GetUserInfo(userId int64) (int64, int64) {
+	followerTable, _ := mysql.GetFollower(userId)
+	FollowerCount := int64(len(followerTable))
+	followTable, _ := mysql.GetFollowed(userId)
+	FollowCount := int64(len(followTable))
+	return FollowerCount, FollowCount
 }

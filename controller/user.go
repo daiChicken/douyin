@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"strings"
 )
 
 // usersLoginInfo use map to store user info, and key is username+password for demo
@@ -35,10 +34,11 @@ type UserResponse struct {
 }
 
 func UserInfo(c *gin.Context) {
-	tmp := c.Request.Header.Get("Authorization")
-	token := strings.SplitN(tmp, " ", 2)[1]
+	token := c.Query("token")
 	if user, exist := usersLoginInfo[token]; exist {
-		user = service.GetUserInfo(user)
+		follower, follow := service.GetUserInfo(user.Id)
+		user.FollowerCount = follower
+		user.FollowCount = follow
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "UserInfo get"},
 			User:     user,

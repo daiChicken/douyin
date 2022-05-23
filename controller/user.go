@@ -40,7 +40,7 @@ func UserInfo(c *gin.Context) {
 		user.FollowerCount = follower
 		user.FollowCount = follow
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 0, StatusMsg: "UserInfo get"},
+			Response: Response{StatusCode: 0},
 			User:     user,
 		})
 	} else {

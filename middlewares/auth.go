@@ -3,6 +3,7 @@ package middlewares
 import (
 	"BytesDanceProject/controller"
 	"BytesDanceProject/pkg/jwt"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +25,7 @@ func JWTAuthMiddleware() func(c *gin.Context) { //需要登录才能访问的地
 		// 将当前请求的userID信息保存到请求的上下文c上
 		//不允许出现奇怪的自定义的写死的英文，而且这个useid可以在别的包用，用于get取值
 		//c.Set("userID", mc.UserID)
-		c.Set(controller.CtxUserIDKey, mc.Openid)
+		c.Set(controller.CtxUserIDKey, mc.UserID)
 		c.Next() // 后续的处理函数可以用过c.Get("userID")来获取当前请求的用户信息
 	}
 }

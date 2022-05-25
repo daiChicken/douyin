@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,10 +17,13 @@ type VideoListResponse struct {
 func Publish(c *gin.Context) {
 	//用户鉴权
 	token := c.Query("token")
-	fmt.Println(usersLoginInfo)
-	user, exist := usersLoginInfo[token]
-	if !exist {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+
+	claim, err := jwt.ParseToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
 		return
 	}
 
@@ -38,7 +41,7 @@ func Publish(c *gin.Context) {
 	}
 
 	//上传文件到七牛云空间
-	err = service.UploadVideo(file, title, int(user.Id))
+	err = service.UploadVideo(file, title, claim.UserID)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -71,15 +74,18 @@ func Publish(c *gin.Context) {
 func PublishList(c *gin.Context) {
 	//用户鉴权
 	token := c.Query("token")
-	fmt.Println(usersLoginInfo)
-	user, exist := usersLoginInfo[token]
-	if !exist {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+
+	claim, err := jwt.ParseToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
 		return
 	}
 
 	//获取当前登录用户发布的所有视频
-	originalVideoList, err := service.ListVideosByUser(int(user.Id)) //【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
+	originalVideoList, err := service.ListVideosByUser(claim.UserID) //【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -106,14 +112,14 @@ func PublishList(c *gin.Context) {
 		//查询当前登录用户是否喜欢该视频。如果当前用户没有登录，则为false
 
 		video := Video{ //注意video中omitempty！！！
-			Id:            int64(originalVideo.Id), //若为0则生成json时不包含该字段
-			Author:        user,                    //待处理
-			PlayUrl:       originalVideo.PlayUrl,   //若为空则生成json时不包含该字段
-			CoverUrl:      originalVideo.CoverUrl,  //若为空则生成json时不包含该字段
-			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段
-			CommentCount:  commentCount,            //若为0则生成json时不包含该字段
-			IsFavorite:    isFavorite,              ////若为false则生成json时不包含该字段
-			Title:         originalVideo.Title,     //若为空则生成json时不包含该字段
+			Id: int64(originalVideo.Id), //若为0则生成json时不包含该字段
+			// Author:        &User{},                 //待处理
+			PlayUrl:       originalVideo.PlayUrl,  //若为空则生成json时不包含该字段
+			CoverUrl:      originalVideo.CoverUrl, //若为空则生成json时不包含该字段
+			FavoriteCount: favoriteCount,          //若为0则生成json时不包含该字段
+			CommentCount:  commentCount,           //若为0则生成json时不包含该字段
+			IsFavorite:    isFavorite,             ////若为false则生成json时不包含该字段
+			Title:         originalVideo.Title,    //若为空则生成json时不包含该字段
 		}
 		videoList[point] = video
 		point++

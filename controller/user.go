@@ -4,9 +4,10 @@ import (
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
 )
 
 // usersLoginInfo use map to store user info, and key is username+password for demo
@@ -58,7 +59,7 @@ func Login(c *gin.Context) {
 		Id:   id,
 		Name: username,
 	}
-	token, _ := jwt.GenToken(username)
+	token, _ := jwt.GenToken(int(id), username)
 	usersLoginInfo[token] = newUser
 	if flag {
 		c.JSON(http.StatusOK, UserLoginResponse{
@@ -91,7 +92,7 @@ func Register(c *gin.Context) {
 			Id:   id,
 			Name: username,
 		}
-		token, _ := jwt.GenToken(username)
+		token, _ := jwt.GenToken(int(id), username)
 		usersLoginInfo[token] = newUser
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},

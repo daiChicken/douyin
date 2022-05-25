@@ -2,8 +2,10 @@ package controller
 
 import (
 	"BytesDanceProject/service"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type VideoListResponse struct {
@@ -13,13 +15,14 @@ type VideoListResponse struct {
 
 // Publish check token then save upload file to public directory
 func Publish(c *gin.Context) {
-	//token := c.Query("token")
-
 	//用户鉴权
-	//if _, exist := usersLoginInfo[token]; !exist {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-	//	return
-	//}
+	token := c.Query("token")
+	fmt.Println(usersLoginInfo)
+	user, exist := usersLoginInfo[token]
+	if !exist {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		return
+	}
 
 	//获取标题
 	title := c.PostForm("title")
@@ -35,7 +38,7 @@ func Publish(c *gin.Context) {
 	}
 
 	//上传文件到七牛云空间
-	err = service.UploadVideo(file, title)
+	err = service.UploadVideo(file, title, int(user.Id))
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -66,16 +69,17 @@ func Publish(c *gin.Context) {
 
 // PublishList all users have same publish video list
 func PublishList(c *gin.Context) {
-	//token := c.Query("token")
-
 	//用户鉴权
-	//if _, exist := usersLoginInfo[token]; !exist {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-	//	return
-	//}
+	token := c.Query("token")
+	fmt.Println(usersLoginInfo)
+	user, exist := usersLoginInfo[token]
+	if !exist {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		return
+	}
 
 	//获取当前登录用户发布的所有视频
-	originalVideoList, err := service.ListVideosByUser() //【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
+	originalVideoList, err := service.ListVideosByUser(int(user.Id)) //【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -103,7 +107,7 @@ func PublishList(c *gin.Context) {
 
 		video := Video{ //注意video中omitempty！！！
 			Id:            int64(originalVideo.Id), //若为0则生成json时不包含该字段
-			Author:        User{},                  //待处理
+			Author:        user,                    //待处理
 			PlayUrl:       originalVideo.PlayUrl,   //若为空则生成json时不包含该字段
 			CoverUrl:      originalVideo.CoverUrl,  //若为空则生成json时不包含该字段
 			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段

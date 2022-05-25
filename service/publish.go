@@ -26,7 +26,7 @@ import (
  */
 
 // UploadVideo 上传视频
-func UploadVideo(file *multipart.FileHeader, title string) (err error) {
+func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err error) {
 
 	//获取文件的后缀名
 	filename := file.Filename                      //获取文件名
@@ -95,7 +95,6 @@ func UploadVideo(file *multipart.FileHeader, title string) (err error) {
 	//视频封面url
 	CoverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + photoKey
 
-	authorId := 0 //此处应该获取当前登录用户的id！！！！！！！！！！
 	newVideo := model.Video{
 		AuthorId: authorId,
 		PlayUrl:  playUrl,
@@ -117,12 +116,11 @@ func UploadVideo(file *multipart.FileHeader, title string) (err error) {
 }
 
 // ListVideosByUser 获取用户所有投稿过的视频
-func ListVideosByUser() (*[]model.Video, error) { //	【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
+func ListVideosByUser(authorId int) (*[]model.Video, error) { //	【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
 
 	//通过函数的参数获取user对象
 	//根据user对象获取获取userid
-	userId := 0 //！！！！！！！！！！！！！假数据
-	videoList, err := mysql.ListVideoByAuthorId(userId)
+	videoList, err := mysql.ListVideoByAuthorId(authorId)
 	if err != nil {
 		return nil, err
 	}

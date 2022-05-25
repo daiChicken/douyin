@@ -87,7 +87,7 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 	//到此上传视频到七牛云的工作完成
 
 	//生成时间戳
-	timeStamp := time.Now().Unix()
+	timeStamp := time.Now().UnixNano() / int64(time.Millisecond)
 
 	//视频url
 	playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + key

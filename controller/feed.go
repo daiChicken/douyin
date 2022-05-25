@@ -25,7 +25,7 @@ func Feed(c *gin.Context) {
 	//latest_time 为可选参数，限制返回视频的最新投稿时间戳，精确到秒，不填表示当前时间
 	latestTime, err := strconv.ParseInt(c.Query("latest_time"), 10, 64)
 	if err != nil || latestTime == 0 {
-		latestTime = time.Now().Unix()
+		latestTime = time.Now().UnixNano() / int64(time.Millisecond)
 	}
 	fmt.Println("latestTime", latestTime)
 
@@ -46,6 +46,17 @@ func Feed(c *gin.Context) {
 
 		//根据authorId获取author对象
 		//authorId := originalVideo.AuthorId
+		author := User{}
+		user, exist := service.GetUserByID(originalVideo.AuthorId)
+		if exist {
+			author.Id = user.Id
+			author.Name = user.UserName
+
+			// todo: 完成以下数据的真实获取
+			author.FollowCount = 2
+			author.FollowerCount = 3
+			author.IsFollow = false
+		}
 
 		var favoriteCount int64 = 666 //！！！！假数据
 		//查询当前视频的点赞数
@@ -58,7 +69,7 @@ func Feed(c *gin.Context) {
 
 		video := Video{ //注意video中omitempty！！！
 			Id:            int64(originalVideo.Id), //若为0则生成json时不包含该字段
-			Author:        User{},                  //待处理
+			Author:        author,                  //待处理
 			PlayUrl:       originalVideo.PlayUrl,   //若为空则生成json时不包含该字段
 			CoverUrl:      originalVideo.CoverUrl,  //若为空则生成json时不包含该字段
 			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段

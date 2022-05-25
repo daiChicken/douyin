@@ -9,6 +9,7 @@ package mysql
 
 import (
 	"BytesDanceProject/model"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -38,4 +39,13 @@ func VerifyPwd(username string, pwd string) (int64, bool) {
 		return 0, false
 	}
 	return user.Id, true
+}
+
+func GetUserByID(userId int) (model.User, bool) {
+	var user model.User
+	db.Where("id = ?", userId).First(&user)
+	if user.Id == 0 {
+		return user, false
+	}
+	return user, true
 }

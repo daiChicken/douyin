@@ -25,8 +25,20 @@ func IsExist(username string) bool {
 
 // InsertUser 将创建的用户插入数据库，id为主键自增
 func InsertUser(auser model.User) (int64, error) {
-	db.Create(&auser)
-	return auser.Id, nil
+	tx := db.Begin() //开启事务
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		return 0, err
+	}
+	if err := tx.Create(&auser).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	return auser.Id, tx.Commit().Error
 }
 
 //VerifyPwd 验证用户密码并获取用户id，用于登陆验证

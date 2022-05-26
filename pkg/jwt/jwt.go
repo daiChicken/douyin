@@ -2,9 +2,10 @@ package jwt
 
 import (
 	"errors"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/viper"
-	"time"
 )
 
 // 然后我们定义JWT的过期时间，这里以2小时为例：(优化成写入配置文件）
@@ -18,15 +19,17 @@ var MySecret = []byte("douyin")
 // 我们这里需要额外记录一个username字段，所以要自定义结构体
 // 如果想要保存更多信息，都可以添加到这个结构体中
 type MyClaims struct {
-	Openid string `json:"openid"`
+	UserID   int    `json:"user_id"`
+	Username string `json:"username"`
 	jwt.StandardClaims
 }
 
 // GenToken 生成JWT
-func GenToken(openid string) (string, error) {
+func GenToken(userID int, username string) (string, error) {
 	// 创建一个我们自己的声明
 	c := MyClaims{
-		openid, // 自定义字段
+		userID,
+		username,
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Duration(viper.GetInt("auth.jwt_expire")) * time.Hour).Unix(), // 过期时间
 			Issuer:    "my-project",                                                                      // 签发人

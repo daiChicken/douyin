@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
-	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type VideoListResponse struct {
@@ -13,13 +16,20 @@ type VideoListResponse struct {
 
 // Publish check token then save upload file to public directory
 func Publish(c *gin.Context) {
-	//token := c.Query("token")
-
 	//用户鉴权
-	//if _, exist := usersLoginInfo[token]; !exist {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-	//	return
-	//}
+	token := c.PostForm("token")
+
+	claim, err := jwt.ParseToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
+		return
+	}
+
+	//获取标题
+	title := c.PostForm("title")
 
 	//获取文件
 	file, err := c.FormFile("data")
@@ -32,7 +42,7 @@ func Publish(c *gin.Context) {
 	}
 
 	//上传文件到七牛云空间
-	err = service.UploadVideo(file)
+	err = service.UploadVideo(file, title, claim.UserID)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -63,22 +73,39 @@ func Publish(c *gin.Context) {
 
 // PublishList all users have same publish video list
 func PublishList(c *gin.Context) {
-	//token := c.Query("token")
+	// token := c.Query("token")
+	userID, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 
-	//用户鉴权
-	//if _, exist := usersLoginInfo[token]; !exist {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-	//	return
-	//}
+	//查看发布列表不需要鉴权
+	// claim, err := jwt.ParseToken(token)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+	// 	return
+	// } else if claim.Valid() != nil {
+	// 	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
+	// 	return
+	// }
 
-	//获取当前登录用户发布的所有视频
-	originalVideoList, err := service.ListVideosByUser() //【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
+	//获取用户发布的所有视频
+	originalVideoList, err := service.ListVideosByUser(int(userID)) //【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
 			StatusMsg:  err.Error(),
 		})
 		return
+	}
+
+	//保存视频作者信息
+	user, _ := service.GetUserByID(int(userID))
+	author := User{
+		Id:   userID,
+		Name: user.UserName,
+
+		// todo: 完成以下数据的真实获取
+		FollowCount:   2,
+		FollowerCount: 3,
+		IsFollow:      false,
 	}
 
 	//获取到的originalVideoList（model.Video）需要进行处理，使其变成满足前端接口的要求的videoList（controller.Video）
@@ -100,12 +127,13 @@ func PublishList(c *gin.Context) {
 
 		video := Video{ //注意video中omitempty！！！
 			Id:            int64(originalVideo.Id), //若为0则生成json时不包含该字段
-			Author:        User{},                  //待处理
+			Author:        author,                  //待处理
 			PlayUrl:       originalVideo.PlayUrl,   //若为空则生成json时不包含该字段
 			CoverUrl:      originalVideo.CoverUrl,  //若为空则生成json时不包含该字段
 			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段
 			CommentCount:  commentCount,            //若为0则生成json时不包含该字段
 			IsFavorite:    isFavorite,              ////若为false则生成json时不包含该字段
+			Title:         originalVideo.Title,     //若为空则生成json时不包含该字段
 		}
 		videoList[point] = video
 		point++

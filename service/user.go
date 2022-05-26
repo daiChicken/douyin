@@ -36,3 +36,8 @@ func GetUserInfo(userId int64) (int64, int64) {
 	FollowCount := int64(len(followTable))
 	return FollowerCount, FollowCount
 }
+
+// 根据 userId 获取 user 的所有能在单表中得到的信息
+func GetUserByID(userId int) (model.User, bool) {
+	return mysql.GetUserByID(userId)
+}

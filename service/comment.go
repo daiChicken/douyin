@@ -13,8 +13,9 @@ func CreateComment(userId int, videoId int, commentText string) (*model.Comment,
 		UserID:     userId,
 		VideoID:    videoId,
 		Content:    commentText,
-		CreateDate: time.Now().Format("01-02"),
+		CreateDate: time.Now(),
 		IsDeleted:  0,
+		UpdateDate: time.Now(),
 	}
 
 	//向数据库中插入评论数据
@@ -44,6 +45,7 @@ func DeleteComment(commentId int) error {
 
 // ListCommentByVideoId 获取id为videoId的视频的所有评论
 func ListCommentByVideoId(videoId int) (*[]model.Comment, error) {
+	//获取没有被删除的视频
 	commentList, err := mysql.ListCommentByVideoId(videoId)
 	if err != nil {
 		return nil, err

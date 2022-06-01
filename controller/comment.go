@@ -63,11 +63,28 @@ func CommentAction(c *gin.Context) {
 			return
 		}
 
+		//获取用户对象
+		originalUser, exist := service.GetUserByID(userId)
+		if !exist {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+			fmt.Println("CommentAction获取用户对象失败")
+			return
+		}
+
+		user := User{
+			Id:   originalUser.Id,
+			Name: originalUser.UserName,
+
+			FollowCount:   0,     //假数据【！！！！！！！！！！！！！！！！！！！】
+			FollowerCount: 0,     //假数据【！！！！！！！！！！！！！！！！！！！】
+			IsFollow:      false, //假数据【！！！！！！！！！！！！！！！！！！！】
+		}
+
 		comment := Comment{
 			Id:         int64(originalComment.ID),
-			User:       User{}, //获取该评论的用户【！！！！！！！！！！！！！！！！未完成】
+			User:       user,
 			Content:    originalComment.Content,
-			CreateDate: originalComment.CreateDate,
+			CreateDate: originalComment.CreateDate.Format("01-02"),
 		}
 
 		c.JSON(http.StatusOK, CommentResponse{
@@ -152,11 +169,30 @@ func CommentList(c *gin.Context) {
 	point := 0 //videoList的指针
 	for _, originalComment := range *originalCommentList {
 
+		userId := originalComment.UserID //发布这条评论的用户的id
+
+		//获取用户对象
+		originalUser, exist := service.GetUserByID(userId)
+		if !exist {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+			fmt.Println("CommentAction获取用户对象失败")
+			return
+		}
+
+		user := User{
+			Id:   originalUser.Id,
+			Name: originalUser.UserName,
+
+			FollowCount:   0,     //假数据【！！！！！！！！！！！！！！！！！！！】
+			FollowerCount: 0,     //假数据【！！！！！！！！！！！！！！！！！！！】
+			IsFollow:      false, //假数据【！！！！！！！！！！！！！！！！！！！】
+		}
+
 		comment := Comment{
 			Id:         int64(originalComment.ID),
-			User:       User{}, //获取该评论的用户【！！！！！！！！！！！！！！！！未完成】
+			User:       user,
 			Content:    originalComment.Content,
-			CreateDate: originalComment.CreateDate,
+			CreateDate: originalComment.CreateDate.Format("01-02"),
 		}
 		commentList[point] = comment
 		point++

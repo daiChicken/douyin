@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"encoding"
+	"encoding/json"
+	"time"
+)
 
 type Comment struct {
 	ID         int       `json:"id"`
@@ -14,4 +18,16 @@ type Comment struct {
 
 func (Comment) TableName() string {
 	return "comment"
+}
+
+var _ encoding.BinaryMarshaler = new(Comment)
+var _ encoding.BinaryUnmarshaler = new(Comment)
+
+func (m *Comment) MarshalBinary() (data []byte, err error) {
+	return json.Marshal(m)
+}
+
+func (m *Comment) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, m)
+
 }

@@ -19,6 +19,17 @@ func UpdateCommentStatus(commentId int) error {
 	return nil
 }
 
+// GetComment 获取指定的评论
+func GetComment(commentId int) (*model.Comment, error) {
+	var comment model.Comment
+	err := db.Where("id = ? ", commentId).Find(&comment).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &comment, nil
+}
+
 // ListCommentDESCByCreateDate 根据创建时间倒序获取该视频所有未被删除的评论
 func ListCommentDESCByCreateDate(videoId int) (*[]model.Comment, error) {
 	var commentList []model.Comment

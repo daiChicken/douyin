@@ -31,7 +31,7 @@ func RelationAction(c *gin.Context) {
 	}
 	//业务处理
 	service.RelationAction(p)
-	ResponseSuccess(c,CodeSuccess)
+	ResponseSuccess(c,CodeSuccess,nil)
 }
 
 // FollowList all users have same follow list

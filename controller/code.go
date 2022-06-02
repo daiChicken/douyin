@@ -3,8 +3,9 @@ package controller
 
 //定义一些可能出现的错误码
 
+type ResCode int64
 const(
-	CodeSuccess int32 = 1000 +iota
+	CodeSuccess ResCode = 1000 +iota
 	CodeServerBusy
 	CodeNeedLogin
 	CodeInvalidToken
@@ -14,7 +15,7 @@ const(
 	CodeNotAccordStandard
 )
 
-var codeMsgMap = map[int32]string{
+var codeMsgMap = map[ResCode]string{
 	CodeSuccess:				"success",
 	CodeServerBusy:				"服务繁忙",
 	CodeNeedLogin:				"需要登录",
@@ -26,7 +27,7 @@ var codeMsgMap = map[int32]string{
 }
 
 // Msg 返回特定的错误提示信息
-func Msg(c int32)string{
+func (c ResCode)Msg()string{
 	msg,ok := codeMsgMap[c]
 	if !ok{
 		return codeMsgMap[CodeServerBusy]

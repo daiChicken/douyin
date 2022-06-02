@@ -14,7 +14,6 @@ import (
 
 */
 
-
 type ResponeseCode struct {
 	Code ResCode `json:"code"`
 	Msg interface{} `json:"msg"`
@@ -46,5 +45,11 @@ func ResponseSuccess(c *gin.Context,code ResCode,data interface{}){
 		Msg: code.Msg(),
 		Data: data,
 	})
+}
+
+
+// ResponseSuccessWithData 返回一个自定义结构体的数据
+func ResponseSuccessWithData(c *gin.Context,data interface{}){
+	c.JSON(http.StatusOK,data)
 }
 

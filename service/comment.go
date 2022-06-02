@@ -18,7 +18,6 @@ func CreateComment(userId int, videoId int, commentText string) (*model.Comment,
 		UpdateDate: time.Now(),
 	}
 
-	//向数据库中插入评论数据
 	err := mysql.InsertComment(&NewComment)
 	if err != nil {
 		return nil, err
@@ -29,27 +28,20 @@ func CreateComment(userId int, videoId int, commentText string) (*model.Comment,
 
 // DeleteComment 删除评论
 func DeleteComment(commentId int) error {
-	//需要删除评论时，将评论的is_deleted字段修改为1
-	comment, err := mysql.GetCommentById(commentId)
+
+	err := mysql.UpdateCommentStatus(commentId)
 	if err != nil {
 		return err
 	}
-
-	err = mysql.UpdateStatusById(comment)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-// ListCommentByVideoId 获取id为videoId的视频的所有评论
-func ListCommentByVideoId(videoId int) (*[]model.Comment, error) {
-	//获取没有被删除的视频
-	commentList, err := mysql.ListCommentByVideoId(videoId)
+// ListComment 获取videoId的所有未被删除的评论
+func ListComment(videoId int) (*[]model.Comment, error) {
+
+	commentList, err := mysql.ListCommentDESCByCreateDate(videoId)
 	if err != nil {
 		return nil, err
 	}
-
 	return commentList, err
 }

@@ -46,8 +46,8 @@ type RedisConf struct {
 }
 //使用viper去获取配置信息
 func Init() (err error) {
-	//viper.SetConfigFile("./config.yaml")
-	viper.SetConfigName("config") //指定配置文件名称（不需要带后缀）
+	//viper.SetConfigFile("./config.yaml.yaml")
+	viper.SetConfigName("config.yaml") //指定配置文件名称（不需要带后缀）
 	viper.SetConfigType("yaml") //指定配置文件类型
 	viper.AddConfigPath(".")//指定查找配置文件的路径（这里使用相对路径）
 
@@ -66,7 +66,7 @@ func Init() (err error) {
 		if err = viper.Unmarshal(Conf);err !=nil{
 			fmt.Println("viper unmarshal failed ",err)
 		}
-		fmt.Println("config is changed!")
+		fmt.Println("config.yaml is changed!")
 	})
 	return
 }

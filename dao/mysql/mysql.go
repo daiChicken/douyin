@@ -39,3 +39,4 @@ func Close() {
 	sqlDB, _ := db.DB()
 	_ = sqlDB.Close()
 }
+

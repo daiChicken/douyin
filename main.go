@@ -24,7 +24,7 @@ func main() {
 	//1、配置信息初始化
 	err := setting.Init()
 	if err != nil {
-		fmt.Printf("config load failed err :", err)
+		fmt.Printf("config.yaml load failed err :", err)
 	}
 
 	//2、初始化日志

@@ -61,8 +61,14 @@ func Feed(c *gin.Context) {
 		var favoriteCount int64 = 666 //！！！！假数据
 		//查询当前视频的点赞数
 
-		var commentCount int64 = 777 //！！！！假数据
-		//查询当前视频的评论数
+		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{
+				StatusCode: 1,
+				StatusMsg:  err.Error(),
+			})
+			return
+		}
 
 		isFavorite := false //！！！！！！假数据
 		//查询当前登录用户是否喜欢该视频。如果当前用户没有登录，则为false

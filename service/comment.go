@@ -78,3 +78,13 @@ func ListComment(videoId int) (*[]model.Comment, error) {
 
 	return commentList, err
 }
+
+// CountCommentByVideoId 获取视频未被删除的评论数
+func CountCommentByVideoId(videoId int) (int64, error) {
+	count, err := mysql.CountCountByVideoId(videoId)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, err
+}

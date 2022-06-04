@@ -5,15 +5,14 @@ import (
 	"BytesDanceProject/dao/redis"
 	"BytesDanceProject/model"
 	"BytesDanceProject/tool"
-	"fmt"
 	"time"
 )
 
 // CreateComment 创建评论
 func CreateComment(userId int, videoId int, commentText string) (*model.Comment, error) {
 
-	now := time.Now()
-	time := time.Unix(now.Unix(), 0) // 参数分别是：秒数,纳秒数
+	now := time.Now()                //获取当前时间
+	time := time.Unix(now.Unix(), 0) //将时间的精度降低到秒级
 
 	NewComment := model.Comment{
 		UserID:     userId,
@@ -47,9 +46,8 @@ func DeleteComment(commentId int) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(comment)
-	key := tool.GetVideoCommentKey(comment.VideoID)
 
+	key := tool.GetVideoCommentKey(comment.VideoID)
 	err = redis.RemoveComment(key, comment)
 	if err != nil {
 		return err

@@ -39,3 +39,13 @@ func ListCommentDESCByCreateDate(videoId int) (*[]model.Comment, error) {
 	}
 	return &commentList, nil
 }
+
+// CountCountByVideoId 统计视频的评论数
+func CountCountByVideoId(videoId int) (int64, error) {
+	var count int64
+	err := db.Table("comment").Where("video_id = ? AND is_deleted = ?", videoId, 0).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

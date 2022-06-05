@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"strconv"
 	"strings"
@@ -75,14 +76,20 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 		return err
 	}
 
-	videoFolderName := "video"               //七牛云中的目录名。用于与文件名拼接，组成文件路径
-	key := videoFolderName + "/" + videoName //文件访问路径，我们通过此路径在七牛云空间中定位文件
+	videoFolderName := "video"                    //七牛云中的目录名。用于与文件名拼接，组成文件路径
+	videoKey := videoFolderName + "/" + videoName //文件访问路径，我们通过此路径在七牛云空间中定位文件
 
-	err = formUploader.Put(context.Background(), &ret, upToken,
-		key, data, file.Size, &putExtra)
-	if err != nil {
-		return err
-	}
+	//起一个协程实现上传的异步
+	go func() {
+		err := formUploader.Put(context.Background(), &ret, upToken,
+			videoKey, data, file.Size, &putExtra)
+		if err != nil {
+			//问题：如果此处出现了问题导致上传失败，前端显示的也是上传成功。err信息没办法及时返回给controller
+			fmt.Println("formUploader.Put()上传失败，错误信息：", err.Error())
+			return
+		}
+		fmt.Println("formUploader.Put()上传成功") //本行供测试使用
+	}()
 	//fmt.Println(ret.Key, ret.Hash)
 	//到此上传视频到七牛云的工作完成
 
@@ -90,10 +97,12 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 	timeStamp := time.Now().UnixNano() / int64(time.Millisecond)
 
 	//视频url
-	playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + key
+	//playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + videoKey
+	playUrl := videoKey
 
 	//视频封面url
-	CoverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + photoKey
+	//CoverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + photoKey
+	CoverUrl := photoKey
 
 	newVideo := model.Video{
 		AuthorId: authorId,

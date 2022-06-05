@@ -3,6 +3,7 @@ package controller
 import (
 	"BytesDanceProject/service"
 	"fmt"
+	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
 	"time"
@@ -73,11 +74,14 @@ func Feed(c *gin.Context) {
 		isFavorite := false //！！！！！！假数据
 		//查询当前登录用户是否喜欢该视频。如果当前用户没有登录，则为false
 
+		playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.PlayUrl
+		coverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.CoverUrl
+
 		video := Video{ //注意video中omitempty！！！
 			Id:            int64(originalVideo.Id), //若为0则生成json时不包含该字段
 			Author:        author,                  //待处理
-			PlayUrl:       originalVideo.PlayUrl,   //若为空则生成json时不包含该字段
-			CoverUrl:      originalVideo.CoverUrl,  //若为空则生成json时不包含该字段
+			PlayUrl:       playUrl,                 //若为空则生成json时不包含该字段
+			CoverUrl:      coverUrl,                //若为空则生成json时不包含该字段
 			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段
 			CommentCount:  commentCount,            //若为0则生成json时不包含该字段
 			IsFavorite:    isFavorite,              ////若为false则生成json时不包含该字段

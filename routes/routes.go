@@ -32,8 +32,8 @@ func Setup(mode string) *gin.Engine {
 		apiRouter.GET("/publish/list/", controller.PublishList)
 
 		// extra apis - I
-		apiRouter.POST("/favorite/action/", controller.FavoriteAction)
-		apiRouter.GET("/favorite/list/", controller.FavoriteList)
+		apiRouter.POST("/favorite/action/", middlewares.JWTAuthMiddleware(), controller.FavoriteAction)
+		apiRouter.GET("/favorite/list/", middlewares.JWTAuthMiddleware(), controller.FavoriteList)
 		apiRouter.POST("/comment/action/", controller.CommentAction)
 		apiRouter.GET("/comment/list/", controller.CommentList)
 

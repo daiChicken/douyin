@@ -3,6 +3,7 @@ package controller
 import (
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
+	"BytesDanceProject/tool"
 	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
@@ -136,14 +137,14 @@ func PublishList(c *gin.Context) {
 		coverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.CoverUrl
 
 		video := Video{ //注意video中omitempty！！！
-			Id:            int64(originalVideo.Id), //若为0则生成json时不包含该字段
-			Author:        author,                  //待处理
-			PlayUrl:       playUrl,                 //若为空则生成json时不包含该字段
-			CoverUrl:      coverUrl,                //若为空则生成json时不包含该字段
-			FavoriteCount: favoriteCount,           //若为0则生成json时不包含该字段
-			CommentCount:  commentCount,            //若为0则生成json时不包含该字段
-			IsFavorite:    isFavorite,              ////若为false则生成json时不包含该字段
-			Title:         originalVideo.Title,     //若为空则生成json时不包含该字段
+			Id:            int64(originalVideo.Id),          //若为0则生成json时不包含该字段
+			Author:        author,                           //待处理
+			PlayUrl:       playUrl,                          //若为空则生成json时不包含该字段
+			CoverUrl:      coverUrl,                         //若为空则生成json时不包含该字段
+			FavoriteCount: favoriteCount,                    //若为0则生成json时不包含该字段
+			CommentCount:  commentCount,                     //若为0则生成json时不包含该字段
+			IsFavorite:    isFavorite,                       ////若为false则生成json时不包含该字段
+			Title:         tool.Filter(originalVideo.Title), //若为空则生成json时不包含该字段
 		}
 		videoList[point] = video
 		point++

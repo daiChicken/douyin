@@ -2,6 +2,7 @@ package controller
 
 import (
 	"BytesDanceProject/service"
+	"BytesDanceProject/tool"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -82,7 +83,7 @@ func CommentAction(c *gin.Context) {
 		comment := Comment{
 			Id:         int64(originalComment.ID),
 			User:       user,
-			Content:    originalComment.Content,
+			Content:    tool.Filter(originalComment.Content), //使用过滤器过滤评论内容
 			CreateDate: originalComment.CreateDate.Format("01-02"),
 		}
 
@@ -172,7 +173,7 @@ func CommentList(c *gin.Context) {
 		comment := Comment{
 			Id:         int64(originalComment.ID),
 			User:       user,
-			Content:    originalComment.Content,
+			Content:    tool.Filter(originalComment.Content), //使用过滤器过滤评论内容
 			CreateDate: originalComment.CreateDate.Format("01-02"),
 		}
 		commentList[point] = comment

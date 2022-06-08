@@ -8,6 +8,7 @@ import (
 	"BytesDanceProject/pkg/snowflake"
 	"BytesDanceProject/routes"
 	"BytesDanceProject/setting"
+	"BytesDanceProject/tool"
 	"context"
 	"fmt"
 	"github.com/spf13/viper"
@@ -51,6 +52,13 @@ func main() {
 	//初始化雪花算法
 	if err = snowflake.Init(setting.Conf.StartTime, setting.Conf.MachineID); err != nil {
 		zap.L().Error("init snowflake failed, err:%v\n", zap.Error(err))
+		return
+	}
+
+	//初始化敏感词过滤器
+	err = tool.Init()
+	if err != nil {
+		zap.L().Error("init filter failed, err:%v\n", zap.Error(err))
 		return
 	}
 

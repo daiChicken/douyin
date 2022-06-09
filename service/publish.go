@@ -108,7 +108,7 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 
 	//起一个协程实现上传的异步
 	go func() {
-		time.Sleep(time.Duration(5) * time.Second)
+		//time.Sleep(time.Duration(5) * time.Second)//可供测试事务使用
 		err := formUploader.Put(context.Background(), &ret, upToken,
 			videoKey, data, file.Size, &putExtra)
 		if err != nil {

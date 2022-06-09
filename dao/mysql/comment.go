@@ -26,7 +26,6 @@ func GetComment(commentId int) (*model.Comment, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &comment, nil
 }
 

@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
+	"fmt"
 	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
@@ -16,7 +18,7 @@ type VideoListResponse struct {
 	VideoList []Video `json:"video_list"`
 }
 
-// Publish check token then save upload file to public directory
+// Publish 视频发布
 func Publish(c *gin.Context) {
 	//用户鉴权
 	token := c.PostForm("token")
@@ -53,19 +55,6 @@ func Publish(c *gin.Context) {
 		return
 	}
 
-	//此处注释掉的为官方demo
-	//filename := filepath.Base(data.Filename)
-	//user := usersLoginInfo[token]
-	//finalName := fmt.Sprintf("%d_%s", user.Id, filename)
-	//saveFile := filepath.Join("./public/", finalName)
-	//if err := c.SaveUploadedFile(data, saveFile); err != nil {
-	//	c.JSON(http.StatusOK, Response{
-	//		StatusCode: 1,
-	//		StatusMsg:  err.Error(),
-	//	})
-	//	return
-	//}
-
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
 		//StatusMsg:  finalName + " uploaded successfully",
@@ -73,50 +62,53 @@ func Publish(c *gin.Context) {
 	})
 }
 
-// PublishList all users have same publish video list
+// PublishList 获取发布列表
 func PublishList(c *gin.Context) {
-	// token := c.Query("token")
-	userID, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	//用户鉴权
+	token := c.Query("token")
 
-	//查看发布列表不需要鉴权
-	// claim, err := jwt.ParseToken(token)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
-	// 	return
-	// } else if claim.Valid() != nil {
-	// 	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
-	// 	return
-	// }
+	claim, err := jwt.ParseToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		fmt.Println("获取发布列表失败", err.Error())
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		fmt.Println("获取发布列表失败", claim.Valid().Error())
+		return
+	}
+
+	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
 
 	//获取用户发布的所有视频
-	originalVideoList, err := service.ListVideosByUser(int(userID)) //【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
+	originalVideoList, err := service.ListVideosByUser(int(userId))
 	if err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		return
+	}
+
+	followCount, followerCount, err := mysql.GetCountByID(int64(userId))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+		fmt.Println("评论发布失败" + err.Error())
 		return
 	}
 
 	//保存视频作者信息
-	user, _ := service.GetUserByID(int(userID))
 	author := User{
-		Id:   userID,
-		Name: user.UserName,
+		Id:            userId,
+		Name:          claim.Username,
+		FollowCount:   followCount,
+		FollowerCount: followerCount,
 
 		// todo: 完成以下数据的真实获取
-		FollowCount:   2,
-		FollowerCount: 3,
-		IsFollow:      false,
+		IsFollow: false,
 	}
 
 	//获取到的originalVideoList（model.Video）需要进行处理，使其变成满足前端接口的要求的videoList（controller.Video）
 	var videoList = make([]Video, len(*originalVideoList))
 	point := 0 //videoList的指针
 	for _, originalVideo := range *originalVideoList {
-
-		//根据authorId获取author对象
-		//authorId := originalVideo.AuthorId
 
 		var favoriteCount int64 = 666 //！！！！假数据
 		//查询当前视频的点赞数

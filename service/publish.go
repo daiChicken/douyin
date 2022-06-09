@@ -127,10 +127,7 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 }
 
 // ListVideosByUser 获取用户所有投稿过的视频
-func ListVideosByUser(authorId int) (*[]model.Video, error) { //	【！！！！！此处应该传入当前登录用户的对象，因为还没有创建user对象，故不进行此操作】
-
-	//通过函数的参数获取user对象
-	//根据user对象获取获取userid
+func ListVideosByUser(authorId int) (*[]model.Video, error) {
 	videoList, err := mysql.ListVideoByAuthorId(authorId)
 	if err != nil {
 		return nil, err

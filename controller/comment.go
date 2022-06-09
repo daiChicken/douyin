@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"BytesDanceProject/dao/mysql"
+	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
 	"fmt"
@@ -25,24 +27,21 @@ type CommentResponse struct {
 // CommentAction 发表评论
 func CommentAction(c *gin.Context) {
 
-	//用户鉴权【获取不到token参数！！！！！！！！！！！！！！客户端的问题】
-	//token := c.PostForm("token")
-	//claim, err := jwt.ParseToken(token)
-	//if err != nil {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
-	//	return
-	//} else if claim.Valid() != nil {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
-	//	return
-	//}
+	//用户鉴权
+	token := c.Query("token")
 
-	//userId, err := strconv.Atoi(c.Query("user_id")) //评论者id【userid获取不到！！！！！！！！！！！！！！！！客户端的问题】
-	//if err != nil {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-	//	fmt.Println("user_id有问题：" + err.Error())
-	//	return
-	//}
-	userId := 22 //假数据！！！！！！！！！！！！！！！！！
+	claim, err := jwt.ParseToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论失败"})
+		fmt.Println("评论失败", err.Error())
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论失败"})
+		fmt.Println("评论失败", claim.Valid().Error())
+		return
+	}
+
+	userId := claim.UserID
 
 	videoId, err := strconv.Atoi(c.Query("video_id")) //被评论的视频的id
 	if err != nil {
@@ -63,21 +62,20 @@ func CommentAction(c *gin.Context) {
 			return
 		}
 
-		//获取用户对象
-		originalUser, exist := service.GetUserByID(userId)
-		if !exist {
+		followCount, followerCount, err := mysql.GetCountByID(int64(userId))
+		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-			fmt.Println("CommentAction获取用户对象失败")
+			fmt.Println("评论发布失败" + err.Error())
 			return
 		}
 
 		user := User{
-			Id:   originalUser.Id,
-			Name: originalUser.UserName,
+			Id:   int64(userId),
+			Name: claim.Username,
 
-			FollowCount:   0,     //假数据【！！！！！！！！！！！！！！！！！！！】
-			FollowerCount: 0,     //假数据【！！！！！！！！！！！！！！！！！！！】
-			IsFollow:      false, //假数据【！！！！！！！！！！！！！！！！！！！】
+			FollowCount:   followCount,   //关注总数
+			FollowerCount: followerCount, //粉丝总数
+			IsFollow:      false,         //关注关系【！！！！！！！！！！！！！！！！！！！】
 		}
 
 		comment := Comment{
@@ -120,30 +118,29 @@ func CommentAction(c *gin.Context) {
 // CommentList 评论列表
 func CommentList(c *gin.Context) {
 
-	//用户鉴权【获取不到token参数！！！！！！！！！客户端的问题】
-	//token := c.PostForm("token")
-	//fmt.Println("CommentList-token:" + token)
-	//
-	//claim, err := jwt.ParseToken(token)
-	//if err != nil {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
-	//	return
-	//} else if claim.Valid() != nil {
-	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
-	//	return
-	//}
+	//用户鉴权
+	claim, err := jwt.ParseToken(c.Query("token"))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
+		fmt.Println("获取评论列表失败", err.Error())
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
+		fmt.Println("获取评论列表失败", claim.Valid().Error())
+		return
+	}
 
 	videoId, err := strconv.Atoi(c.Query("video_id")) //获取该视频的评论列表
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-		fmt.Println("video_id有问题：" + err.Error())
+		fmt.Println("获取评论列表失败video_id有问题：" + err.Error())
 		return
 	}
 
 	originalCommentList, err := service.ListComment(videoId)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-		fmt.Println("service.ListCommentByVideoId有问题：" + err.Error())
+		fmt.Println("获取评论列表失败service.ListCommentByVideoId有问题：" + err.Error())
 		return
 	}
 
@@ -161,13 +158,20 @@ func CommentList(c *gin.Context) {
 			return
 		}
 
+		followCount, followerCount, err := mysql.GetCountByID(int64(userId))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+			fmt.Println("评论发布失败" + err.Error())
+			return
+		}
+
 		user := User{
 			Id:   originalUser.Id,
 			Name: originalUser.UserName,
 
-			FollowCount:   0,     //假数据【！！！！！！！！！！！！！！！！！！！】
-			FollowerCount: 0,     //假数据【！！！！！！！！！！！！！！！！！！！】
-			IsFollow:      false, //假数据【！！！！！！！！！！！！！！！！！！！】
+			FollowCount:   followCount,   //关注总数
+			FollowerCount: followerCount, //粉丝总数
+			IsFollow:      false,         //假数据【！！！！！！！！！！！！！！！！！！！】
 		}
 
 		comment := Comment{

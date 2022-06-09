@@ -3,7 +3,6 @@ package controller
 import (
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
-	"fmt"
 	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
@@ -20,7 +19,7 @@ type FeedResponse struct {
 
 const maxVideoCount = 30 //一次请求最多返回的视频数
 
-// Feed same demo video list for every request
+// Feed 拉取feed流
 func Feed(c *gin.Context) {
 
 	//获取参数
@@ -29,7 +28,6 @@ func Feed(c *gin.Context) {
 	if err != nil || latestTime == 0 {
 		latestTime = time.Now().UnixNano() / int64(time.Millisecond)
 	}
-	fmt.Println("latestTime", latestTime)
 
 	//获取视频列表及下一次请求的时间戳
 	originalVideoList, nextTime, err := service.ListVideos(maxVideoCount, latestTime)

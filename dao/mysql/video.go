@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"BytesDanceProject/model"
+	"gorm.io/gorm"
 )
 
 /**
@@ -39,14 +40,15 @@ func ListVideoDESCByCreateTime(videoCount int, latestTime int64) (*[]model.Video
 }
 
 // InsertVideo 插入一条video记录 id为主键自增
-func InsertVideo(v model.Video) error {
+func InsertVideo(v model.Video) (*gorm.DB, error) {
 	//sqlStr := `INSERT INTO video(author_id, play_url,cover_url,favorite_count,comment_count,is_deleted,create_time)
 	//VALUES(?,?,?,0,0,0,?)`
 	// sqlStr := `INSERT INTO video(author_id, play_url,cover_url,is_deleted,create_time)
 	// VALUES(?,?,?,0,?)`
 	// ret, err := db.Exec(sqlStr, v.AuthorId, v.PlayUrl, v.CoverUrl, v.CreateTime)
-	if err := db.Create(&v).Error; err != nil {
-		return err
+	dbWithTransaction := db.Begin() //开启事务
+	if err := dbWithTransaction.Create(&v).Error; err != nil {
+		return nil, err
 	}
 
 	// theID, err := ret.LastInsertId() // 新插入数据的id
@@ -54,7 +56,7 @@ func InsertVideo(v model.Video) error {
 	// 	return err
 	// }
 	// fmt.Printf("insert success, the id is %d.\n", theID)
-	return nil
+	return dbWithTransaction, nil
 }
 
 // ListVideoByAuthorId 根据作者id获取视频列表

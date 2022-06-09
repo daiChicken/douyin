@@ -9,14 +9,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/qiniu/go-sdk/v7/auth/qbox"
+	"github.com/qiniu/go-sdk/v7/storage"
+	"github.com/spf13/viper"
 	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/qiniu/go-sdk/v7/auth/qbox"
-	"github.com/qiniu/go-sdk/v7/storage"
-	"github.com/spf13/viper"
 )
 
 /**
@@ -79,20 +78,6 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 	videoFolderName := "video"                    //七牛云中的目录名。用于与文件名拼接，组成文件路径
 	videoKey := videoFolderName + "/" + videoName //文件访问路径，我们通过此路径在七牛云空间中定位文件
 
-	//起一个协程实现上传的异步
-	go func() {
-		err := formUploader.Put(context.Background(), &ret, upToken,
-			videoKey, data, file.Size, &putExtra)
-		if err != nil {
-			//问题：如果此处出现了问题导致上传失败，前端显示的也是上传成功。err信息没办法及时返回给controller
-			fmt.Println("formUploader.Put()上传失败，错误信息：", err.Error())
-			return
-		}
-		fmt.Println("formUploader.Put()上传成功") //本行供测试使用
-	}()
-	//fmt.Println(ret.Key, ret.Hash)
-	//到此上传视频到七牛云的工作完成
-
 	//生成时间戳
 	timeStamp := time.Now().UnixNano() / int64(time.Millisecond)
 
@@ -116,10 +101,27 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 	}
 
 	//调用dao进行存储
-	err = mysql.InsertVideo(newVideo)
+	dbWithTransaction, err := mysql.InsertVideo(newVideo)
 	if err != nil {
 		return err
 	}
+
+	//起一个协程实现上传的异步
+	go func() {
+		time.Sleep(time.Duration(5) * time.Second)
+		err := formUploader.Put(context.Background(), &ret, upToken,
+			videoKey, data, file.Size, &putExtra)
+		if err != nil {
+			//问题：如果此处出现了问题导致上传失败，前端显示的也是上传成功。err信息没办法及时返回给controller
+			fmt.Println("formUploader.Put()上传失败，错误信息：", err.Error())
+			dbWithTransaction.Rollback() //事务回滚
+			return
+		}
+		dbWithTransaction.Commit()            //提交事务
+		fmt.Println("formUploader.Put()上传成功") //本行供测试使用
+	}()
+	//fmt.Println(ret.Key, ret.Hash)
+	//到此上传视频到七牛云的工作完成
 
 	return
 }

@@ -134,14 +134,14 @@ func GetFollowerList(id int64) (datas []model.UserFocus, err error) {
 
 // GetCountByID 根据id 取得该id的 关注数
 func GetCountByID(id int64) (int64, int64, error) {
-	msg := model.FocusCount{}
+	var msg []*model.FocusCount
 
-	err := db.Where("id = ?", id).First(&msg).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) { //如果没查到该数据，也不算出错
-		return 0, 0, nil
-	}
+	err := db.Where("id = ?", id).Find(&msg).Error
 	if err != nil {
 		return 0, 0, err
 	}
-	return msg.FollowCount, msg.FollowerCount, nil
+	if len(msg) == 0 {
+		return 0, 0, nil
+	}
+	return msg[0].FollowCount, msg[0].FollowerCount, nil
 }

@@ -9,6 +9,7 @@ import (
 type Comment struct {
 	ID         int       `json:"id"`
 	UserID     int       `json:"user_id" db:"user_id" `
+	UserName   string    `json:"user_name" db:"user_name" binding:"required"`
 	VideoID    int       `json:"video_id" db:"video_id" binding:"required"`
 	Content    string    `json:"content" db:"content" binding:"required"`
 	CreateDate time.Time `json:"create_date" db:"create_date"`

@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
+	"fmt"
 	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
@@ -48,13 +50,20 @@ func Feed(c *gin.Context) {
 		//authorId := originalVideo.AuthorId
 		author := User{}
 		user, exist := service.GetUserByID(originalVideo.AuthorId)
+		followCount, followerCount, err := mysql.GetCountByID(int64(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
+			return
+		}
+
 		if exist {
 			author.Id = user.Id
 			author.Name = user.UserName
+			author.FollowCount = followCount
+			author.FollowerCount = followerCount
 
 			// todo: 完成以下数据的真实获取
-			author.FollowCount = 2
-			author.FollowerCount = 3
 			author.IsFollow = false
 		}
 

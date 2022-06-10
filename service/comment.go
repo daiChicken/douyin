@@ -9,7 +9,7 @@ import (
 )
 
 // CreateComment 创建评论
-func CreateComment(userId int, videoId int, commentText string) (*model.Comment, error) {
+func CreateComment(userId int, videoId int, commentText string, userName string) (*model.Comment, error) {
 
 	now := time.Now()                //获取当前时间
 	time := time.Unix(now.Unix(), 0) //将时间的精度降低到秒级
@@ -21,6 +21,7 @@ func CreateComment(userId int, videoId int, commentText string) (*model.Comment,
 		CreateDate: time,
 		IsDeleted:  0,
 		UpdateDate: time,
+		UserName:   userName,
 	}
 
 	//将评论存入MySQL中
@@ -81,7 +82,10 @@ func ListComment(videoId int) (*[]model.Comment, error) {
 
 // CountCommentByVideoId 获取视频未被删除的评论数
 func CountCommentByVideoId(videoId int) (int64, error) {
-	count, err := mysql.CountCountByVideoId(videoId)
+	//count, err := mysql.CountCountByVideoId(videoId)
+
+	key := tool.GetVideoCommentKey(videoId)
+	count, err := redis.CountComment(key)
 	if err != nil {
 		return 0, err
 	}

@@ -46,7 +46,7 @@ func CommentAction(c *gin.Context) {
 	videoId, err := strconv.Atoi(c.Query("video_id")) //被评论的视频的id
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-		fmt.Println("video_id有问题：" + err.Error())
+		fmt.Println("评论发布失败" + err.Error())
 		return
 	}
 
@@ -55,10 +55,10 @@ func CommentAction(c *gin.Context) {
 	if actionType == "1" { //发布评论
 		commentText := c.Query("comment_text") //评论内容（type==1时使用）
 
-		originalComment, err := service.CreateComment(userId, videoId, commentText)
+		originalComment, err := service.CreateComment(userId, videoId, commentText, claim.Username)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-			fmt.Println("service.CreateComment有问题：" + err.Error())
+			fmt.Println("评论发布失败" + err.Error())
 			return
 		}
 
@@ -86,11 +86,8 @@ func CommentAction(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, CommentResponse{
-			Response: Response{
-				StatusCode: 0,
-				StatusMsg:  "成功发布评论",
-			},
-			Comment: comment,
+			Response: Response{StatusCode: 0, StatusMsg: "成功发布评论"},
+			Comment:  comment,
 		})
 		return
 
@@ -98,13 +95,13 @@ func CommentAction(c *gin.Context) {
 		commentId, err := strconv.Atoi(c.Query("comment_id")) //要删除的评论的id（type==2时使用）
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论删除失败"})
-			fmt.Println("comment_id有问题：" + err.Error())
+			fmt.Println("评论删除失败" + err.Error())
 			return
 		}
 		err = service.DeleteComment(commentId)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论删除失败"})
-			fmt.Println("service.DeleteComment有问题：" + err.Error())
+			fmt.Println("评论删除失败" + err.Error())
 			return
 		}
 
@@ -130,17 +127,17 @@ func CommentList(c *gin.Context) {
 		return
 	}
 
-	videoId, err := strconv.Atoi(c.Query("video_id")) //获取该视频的评论列表
+	videoId, err := strconv.Atoi(c.Query("video_id"))
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-		fmt.Println("获取评论列表失败video_id有问题：" + err.Error())
+		fmt.Println("获取评论列表失败" + err.Error())
 		return
 	}
 
 	originalCommentList, err := service.ListComment(videoId)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-		fmt.Println("获取评论列表失败service.ListCommentByVideoId有问题：" + err.Error())
+		fmt.Println("获取评论列表失败" + err.Error())
 		return
 	}
 
@@ -148,26 +145,16 @@ func CommentList(c *gin.Context) {
 	point := 0 //commentList的指针
 	for _, originalComment := range *originalCommentList {
 
-		userId := originalComment.UserID //发布这条评论的用户的id
-
-		//获取用户对象
-		originalUser, exist := service.GetUserByID(userId)
-		if !exist {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-			fmt.Println("service.GetUserByID有问题：" + err.Error())
-			return
-		}
-
-		followCount, followerCount, err := mysql.GetCountByID(int64(userId))
+		followCount, followerCount, err := mysql.GetCountByID(int64(originalComment.UserID))
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-			fmt.Println("评论发布失败" + err.Error())
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
+			fmt.Println("评论列表获取失败" + err.Error())
 			return
 		}
 
 		user := User{
-			Id:   originalUser.Id,
-			Name: originalUser.UserName,
+			Id:   int64(originalComment.UserID),
+			Name: originalComment.UserName,
 
 			FollowCount:   followCount,   //关注总数
 			FollowerCount: followerCount, //粉丝总数
@@ -185,10 +172,7 @@ func CommentList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, CommentListResponse{
-		Response: Response{
-			StatusCode: 0,
-			StatusMsg:  "成功获取评论列表",
-		},
+		Response:    Response{StatusCode: 0, StatusMsg: "成功获取评论列表"},
 		CommentList: commentList,
 	})
 }

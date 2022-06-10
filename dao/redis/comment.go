@@ -4,6 +4,8 @@ import (
 	"BytesDanceProject/model"
 	"errors"
 	"github.com/go-redis/redis"
+	"math"
+	"strconv"
 )
 
 /**
@@ -48,4 +50,12 @@ func RemoveComment(key string, comment *model.Comment) error {
 		return errors.New("redis中删除评论失败")
 	}
 	return nil
+}
+
+func CountComment(key string) (int64, error) {
+	count, err := rdb.ZCount(key, strconv.Itoa(0), strconv.Itoa(math.MaxInt)).Result()
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

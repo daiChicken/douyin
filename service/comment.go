@@ -25,7 +25,7 @@ func CreateComment(userId int, videoId int, commentText string, userName string)
 	}
 
 	//将评论存入MySQL中
-	err := mysql.InsertComment(&NewComment)
+	dbWithTransaction, err := mysql.InsertComment(&NewComment)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +34,11 @@ func CreateComment(userId int, videoId int, commentText string, userName string)
 	key := tool.GetVideoCommentKey(videoId)
 	err = redis.AddCommentToSortedSet(key, now.Unix(), &NewComment)
 	if err != nil {
+		dbWithTransaction.Rollback() //事务回滚
 		return nil, err
 	}
+
+	dbWithTransaction.Commit() //提交事务
 
 	return &NewComment, nil
 }
@@ -43,22 +46,26 @@ func CreateComment(userId int, videoId int, commentText string, userName string)
 // DeleteComment 删除评论
 func DeleteComment(commentId int) error {
 
+	//修改mysql中评论的状态
+	dbWithTransaction, err := mysql.UpdateCommentStatus(commentId)
+	if err != nil {
+		return err
+	}
+
 	comment, err := mysql.GetComment(commentId)
 	if err != nil {
 		return err
 	}
 
+	//从redis中删除评论
 	key := tool.GetVideoCommentKey(comment.VideoID)
 	err = redis.RemoveComment(key, comment)
 	if err != nil {
+		dbWithTransaction.Rollback() //回滚事务
 		return err
 	}
 
-	//修改mysql中评论的状态
-	err = mysql.UpdateCommentStatus(commentId)
-	if err != nil {
-		return err
-	}
+	dbWithTransaction.Commit() //提交事务
 
 	return nil
 }

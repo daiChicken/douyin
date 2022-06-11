@@ -41,7 +41,6 @@ func ListComment(key string) (*[]model.Comment, error) {
 }
 
 func RemoveComment(key string, comment *model.Comment) error {
-
 	count, err := rdb.ZRem(key, comment).Result()
 	if err != nil {
 		return err

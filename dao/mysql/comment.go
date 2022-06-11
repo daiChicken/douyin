@@ -1,22 +1,27 @@
 package mysql
 
-import "BytesDanceProject/model"
+import (
+	"BytesDanceProject/model"
+	"gorm.io/gorm"
+)
 
 // InsertComment 插入一条新的评论
-func InsertComment(comment *model.Comment) error {
-	if err := db.Create(&comment).Error; err != nil {
-		return err
+func InsertComment(comment *model.Comment) (*gorm.DB, error) {
+	dbWithTransaction := db.Begin() //开启事务
+	if err := dbWithTransaction.Create(&comment).Error; err != nil {
+		return nil, err
 	}
-	return nil
+	return dbWithTransaction, nil
 }
 
 // UpdateCommentStatus 将is_deleted字段的值改为1
-func UpdateCommentStatus(commentId int) error {
-	err := db.Table("comment").Where("id = ? ", commentId).Update("is_deleted", 1).Error
+func UpdateCommentStatus(commentId int) (*gorm.DB, error) {
+	dbWithTransaction := db.Begin() //开启事务
+	err := dbWithTransaction.Table("comment").Where("id = ? ", commentId).Update("is_deleted", 1).Error
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return dbWithTransaction, nil
 }
 
 // GetComment 获取指定的评论

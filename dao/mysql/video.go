@@ -52,3 +52,12 @@ func ListVideoByAuthorId(authorId int) (*[]model.Video, error) {
 	}
 	return &videoList, nil
 }
+
+func GetVideoById(id int) (*model.Video, error) {
+	var video model.Video
+	err := db.Table("video").Where("id = ?", id).Find(&video).Error
+	if err != nil {
+		return nil, err
+	}
+	return &video, nil
+}

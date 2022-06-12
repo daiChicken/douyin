@@ -18,3 +18,7 @@ func GetVideoCommentKey(videoId int) string {
 func GetVideoLikeKey(videoId int) string {
 	return "video" + split + "like" + split + strconv.Itoa(videoId)
 }
+
+func GetUserLikeKey(userId int) string {
+	return "user" + split + "like" + split + strconv.Itoa(userId)
+}

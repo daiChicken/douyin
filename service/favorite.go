@@ -1,9 +1,11 @@
 package service
 
 import (
+	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/dao/redis"
 	"BytesDanceProject/model"
 	"BytesDanceProject/tool"
+	"strconv"
 )
 
 type ListFavoriteMsg struct {
@@ -56,9 +58,14 @@ type ListFavoriteMsg struct {
 // LikeAction 点赞操作
 func LikeAction(userId int, videoId int) error {
 
-	//点赞存redis
-	key := tool.GetVideoLikeKey(videoId)
-	err := redis.AddUserIdToSet(key, userId)
+	videoLikeKey := tool.GetVideoLikeKey(videoId)
+	err := redis.AddUserToVideoSet(videoLikeKey, userId)
+	if err != nil {
+		return err
+	}
+
+	userLikeKey := tool.GetUserLikeKey(userId)
+	err = redis.AddVideoToUserSet(userLikeKey, videoId)
 	if err != nil {
 		return err
 	}
@@ -68,8 +75,15 @@ func LikeAction(userId int, videoId int) error {
 
 // CancelLikeAction 取消点赞操作
 func CancelLikeAction(userId int, videoId int) error {
-	key := tool.GetVideoLikeKey(videoId)
-	err := redis.RemoveUserIdFromSet(key, userId)
+
+	videoLikeKey := tool.GetVideoLikeKey(videoId)
+	err := redis.RemoveUserFromVideoSet(videoLikeKey, userId)
+	if err != nil {
+		return err
+	}
+
+	userLikeKey := tool.GetUserLikeKey(userId)
+	err = redis.RemoveVideoFromUserSet(userLikeKey, videoId)
 	if err != nil {
 		return err
 	}
@@ -96,9 +110,23 @@ func GetLikeStatus(videoId int, userId int) (bool, error) {
 
 }
 
-// 点赞列表
-func FavoriteList(p model.FavoriteListRequest) error {
-	// 根据id获取喜爱列表
+func ListLikeVideo(userId int) (*[]model.Video, error) {
+	userLikeKey := tool.GetUserLikeKey(userId)
+	videoIds, err := redis.ListLikedVideo(userLikeKey)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil
+	var videoList = make([]model.Video, len(videoIds))
+	for idx, idString := range videoIds {
+		id, _ := strconv.ParseInt(idString, 10, 64)
+		videoFromMysql, err := mysql.GetVideoById(int(id))
+
+		if err != nil {
+			return nil, err
+		}
+		videoList[idx] = *videoFromMysql
+	}
+
+	return &videoList, nil
 }

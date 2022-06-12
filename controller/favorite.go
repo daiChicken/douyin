@@ -1,12 +1,13 @@
 package controller
 
 import (
-	"BytesDanceProject/model"
+	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
+	"BytesDanceProject/tool"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
+	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
 )
@@ -30,8 +31,7 @@ type VideoList struct {
 	Title         string `json:"title"`
 }
 
-// 点赞
-// FavoriteAction no practical effect, just check if token is valid
+// FavoriteAction 点赞操作
 func FavoriteAction(c *gin.Context) {
 	//var favoriteRequest model.FavoriteRequest
 	//_ = c.ShouldBindJSON(favoriteRequest)
@@ -75,9 +75,6 @@ func FavoriteAction(c *gin.Context) {
 		fmt.Println("点赞失败" + err.Error())
 		return
 	}
-	fmt.Println("!!!!!", likeStatus)
-	fmt.Println("!!!!!", actionType == "1" && !likeStatus)
-	fmt.Println("!!!!!", actionType == "2" || likeStatus)
 
 	if actionType == "1" && !likeStatus { //点赞
 
@@ -107,30 +104,102 @@ func FavoriteAction(c *gin.Context) {
 
 }
 
-// FavoriteList all users have same favorite video list
+// FavoriteList 获取点赞列表
 func FavoriteList(c *gin.Context) {
-	var favoriteListRequest model.FavoriteListRequest
-
+	//用户鉴权
 	token := c.Query("token")
+
 	claim, err := jwt.ParseToken(token)
 	if err != nil {
-		zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		fmt.Println("获取发布列表失败", err.Error())
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		fmt.Println("获取发布列表失败", claim.Valid().Error())
+		return
 	}
-	userId := claim.UserID
-	favoriteListRequest.Token = token
-	favoriteListRequest.UserID = int64(userId)
 
-	if err := service.FavoriteList(favoriteListRequest); err != nil {
-		zap.L().Error("service.FavoriteList() failed", zap.Error(err))
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败哦！"})
-	} else {
-		c.JSON(http.StatusOK, VideoListResponse{
-			Response: Response{
-				StatusCode: 0,
-			},
-			VideoList: DemoVideos,
-		})
+	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
+
+	originalVideoList, err := service.ListLikeVideo(int(userId))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败"})
+		fmt.Println("获取点赞列表失败" + err.Error())
+		return
 	}
+
+	//获取到的originalVideoList（model.Video）需要进行处理，使其变成满足前端接口的要求的videoList（controller.Video）
+	var videoList = make([]Video, len(*originalVideoList))
+	point := 0 //videoList的指针
+	for _, originalVideo := range *originalVideoList {
+
+		//根据authorId获取author对象
+		//authorId := originalVideo.AuthorId
+		author := User{}
+		user, exist := service.GetUserByID(originalVideo.AuthorId)
+		followCount, followerCount, err := mysql.GetCountByID(int64(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
+			return
+		}
+
+		if exist {
+			author.Id = user.Id
+			author.Name = user.UserName
+			author.FollowCount = followCount
+			author.FollowerCount = followerCount
+
+			// todo: 完成以下数据的真实获取
+			author.IsFollow = false
+		}
+
+		likeCount, err := service.CountLike(originalVideo.Id)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
+			return
+		}
+
+		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
+			return
+		}
+
+		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserID)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			fmt.Println(err.Error())
+			return
+		}
+
+		playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.PlayUrl
+		coverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.CoverUrl
+
+		video := Video{ //注意video中omitempty！！！
+			Id:            int64(originalVideo.Id),          //若为0则生成json时不包含该字段
+			Author:        author,                           //待处理
+			PlayUrl:       playUrl,                          //若为空则生成json时不包含该字段
+			CoverUrl:      coverUrl,                         //若为空则生成json时不包含该字段
+			FavoriteCount: likeCount,                        //若为0则生成json时不包含该字段
+			CommentCount:  commentCount,                     //若为0则生成json时不包含该字段
+			IsFavorite:    likeStatus,                       ////若为false则生成json时不包含该字段
+			Title:         tool.Filter(originalVideo.Title), //若为空则生成json时不包含该字段
+		}
+		videoList[point] = video
+		point++
+	}
+
+	//返回响应
+	c.JSON(http.StatusOK, VideoListResponse{
+		Response: Response{
+			StatusCode: 0,
+			StatusMsg:  "成功获取当前登录用户所有投稿过的视频",
+		},
+		VideoList: videoList,
+	})
 
 }

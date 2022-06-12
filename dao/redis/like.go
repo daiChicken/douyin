@@ -7,7 +7,7 @@ package redis
  * @description
  */
 
-func AddUserIdToSet(key string, userId int) error {
+func AddUserToVideoSet(key string, userId int) error {
 	_, err := rdb.SAdd(key, userId).Result()
 	if err != nil {
 		return err
@@ -15,7 +15,7 @@ func AddUserIdToSet(key string, userId int) error {
 	return nil
 }
 
-func RemoveUserIdFromSet(key string, userId int) error {
+func RemoveUserFromVideoSet(key string, userId int) error {
 	_, err := rdb.SRem(key, userId).Result()
 	if err != nil {
 		return err
@@ -37,5 +37,28 @@ func GetLikeStatus(key string, userId int) (bool, error) {
 		return false, err
 	}
 	return result, err
+}
 
+func AddVideoToUserSet(key string, VideoId int) error {
+	_, err := rdb.SAdd(key, VideoId).Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func RemoveVideoFromUserSet(key string, VideoId int) error {
+	_, err := rdb.SRem(key, VideoId).Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ListLikedVideo(key string) ([]string, error) {
+	result, err := rdb.SMembers(key).Result()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

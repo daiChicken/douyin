@@ -2,6 +2,7 @@ package controller
 
 import (
 	"BytesDanceProject/dao/mysql"
+	"BytesDanceProject/model"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
@@ -94,6 +95,25 @@ func PublishList(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("followCount, followerCount", followCount, followerCount)
+
+	isFollow := true
+	//获取视频发布者的所有粉丝
+	datas, err := service.GetFollowerList(&model.FollowListRE{
+		UserID: userId,
+		Token:  "",
+	})
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		fmt.Println(err.Error())
+		return
+	}
+	for _, data := range datas {
+		if claim.Username == data.UserName {
+			isFollow = true
+		}
+	}
+
 	//保存视频作者信息
 	author := User{
 		Id:            userId,
@@ -102,7 +122,7 @@ func PublishList(c *gin.Context) {
 		FollowerCount: followerCount,
 
 		// todo: 完成以下数据的真实获取
-		IsFollow: false,
+		IsFollow: isFollow,
 	}
 
 	//获取到的originalVideoList（model.Video）需要进行处理，使其变成满足前端接口的要求的videoList（controller.Video）
@@ -110,20 +130,26 @@ func PublishList(c *gin.Context) {
 	point := 0 //videoList的指针
 	for _, originalVideo := range *originalVideoList {
 
-		var favoriteCount int64 = 666 //！！！！假数据
-		//查询当前视频的点赞数
-
-		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
+		likeCount, err := service.CountLike(originalVideo.Id)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{
-				StatusCode: 1,
-				StatusMsg:  err.Error(),
-			})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			fmt.Println("获取发布列表失败" + err.Error())
 			return
 		}
 
-		isFavorite := false //！！！！！！假数据
-		//查询当前登录用户是否喜欢该视频。如果当前用户没有登录，则为false
+		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			fmt.Println(err.Error())
+			return
+		}
+
+		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserID)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			fmt.Println(err.Error())
+			return
+		}
 
 		playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.PlayUrl
 		coverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.CoverUrl
@@ -133,9 +159,9 @@ func PublishList(c *gin.Context) {
 			Author:        author,                           //待处理
 			PlayUrl:       playUrl,                          //若为空则生成json时不包含该字段
 			CoverUrl:      coverUrl,                         //若为空则生成json时不包含该字段
-			FavoriteCount: favoriteCount,                    //若为0则生成json时不包含该字段
+			FavoriteCount: likeCount,                        //若为0则生成json时不包含该字段
 			CommentCount:  commentCount,                     //若为0则生成json时不包含该字段
-			IsFavorite:    isFavorite,                       ////若为false则生成json时不包含该字段
+			IsFavorite:    likeStatus,                       ////若为false则生成json时不包含该字段
 			Title:         tool.Filter(originalVideo.Title), //若为空则生成json时不包含该字段
 		}
 		videoList[point] = video

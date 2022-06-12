@@ -2,6 +2,7 @@ package controller
 
 import (
 	"BytesDanceProject/dao/mysql"
+	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
 	"fmt"
@@ -24,6 +25,14 @@ const maxVideoCount = 30 //一次请求最多返回的视频数
 // Feed 拉取feed流
 func Feed(c *gin.Context) {
 
+	token := c.Query("token")
+
+	claim, err := jwt.ParseToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+		fmt.Println("拉取feed流失败" + err.Error())
+	}
+
 	//获取参数
 	//latest_time 为可选参数，限制返回视频的最新投稿时间戳，精确到秒，不填表示当前时间
 	latestTime, err := strconv.ParseInt(c.Query("latest_time"), 10, 64)
@@ -34,10 +43,8 @@ func Feed(c *gin.Context) {
 	//获取视频列表及下一次请求的时间戳
 	originalVideoList, nextTime, err := service.ListVideos(maxVideoCount, latestTime)
 	if err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+		fmt.Println("拉取feed流失败" + err.Error())
 		return
 	}
 
@@ -67,20 +74,26 @@ func Feed(c *gin.Context) {
 			author.IsFollow = false
 		}
 
-		var favoriteCount int64 = 666 //！！！！假数据
-		//查询当前视频的点赞数
-
-		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
+		likeCount, err := service.CountLike(originalVideo.Id)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{
-				StatusCode: 1,
-				StatusMsg:  err.Error(),
-			})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
 			return
 		}
 
-		isFavorite := false //！！！！！！假数据
-		//查询当前登录用户是否喜欢该视频。如果当前用户没有登录，则为false
+		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
+			return
+		}
+
+		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserID)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			fmt.Println(err.Error())
+			return
+		}
 
 		playUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.PlayUrl
 		coverUrl := "http://" + viper.GetString("qiniuyun.domain") + "/" + originalVideo.CoverUrl
@@ -90,9 +103,9 @@ func Feed(c *gin.Context) {
 			Author:        author,                           //待处理
 			PlayUrl:       playUrl,                          //若为空则生成json时不包含该字段
 			CoverUrl:      coverUrl,                         //若为空则生成json时不包含该字段
-			FavoriteCount: favoriteCount,                    //若为0则生成json时不包含该字段
+			FavoriteCount: likeCount,                        //若为0则生成json时不包含该字段
 			CommentCount:  commentCount,                     //若为0则生成json时不包含该字段
-			IsFavorite:    isFavorite,                       ////若为false则生成json时不包含该字段
+			IsFavorite:    likeStatus,                       ////若为false则生成json时不包含该字段
 			Title:         tool.Filter(originalVideo.Title), //若为空则生成json时不包含该字段
 		}
 		videoList[point] = video

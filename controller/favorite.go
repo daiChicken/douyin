@@ -4,11 +4,11 @@ import (
 	"BytesDanceProject/model"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
-	"github.com/davecgh/go-spew/spew"
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/cast"
 	"go.uber.org/zap"
 	"net/http"
+	"strconv"
 )
 
 //type FavoriteActionResponse struct {
@@ -33,30 +33,77 @@ type VideoList struct {
 // 点赞
 // FavoriteAction no practical effect, just check if token is valid
 func FavoriteAction(c *gin.Context) {
-	var favoriteRequest model.FavoriteRequest
+	//var favoriteRequest model.FavoriteRequest
 	//_ = c.ShouldBindJSON(favoriteRequest)
 	//tmp := c.Request.Header.Get("Authorization")
 	token := c.Query("token")
 
 	claim, err := jwt.ParseToken(token)
-
 	if err != nil {
-		zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		return
+	} else if claim.Valid() != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
+		return
 	}
-	userId := claim.UserID
-	actionType := c.Query("action_type")
-	favoriteRequest.ActionType = cast.ToInt32(actionType)
-	favoriteRequest.UserID = int64(userId)
-	favoriteRequest.Token = token
-	spew.Dump("=======================controller:favoriteRequest", favoriteRequest)
 
-	if err := service.FavoriteAction(favoriteRequest); err != nil {
-		zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
-	} else {
-		ResponseSuccess(c, CodeSuccess, nil)
+	userId := claim.UserID               //当前登录用户id，点赞用户id
+	actionType := c.Query("action_type") //1-点赞，2-取消点赞
+
+	videoId, err := strconv.Atoi(c.Query("video_id")) //被点赞的视频的id
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
+		fmt.Println("点赞失败" + err.Error())
+		return
 	}
+
+	//favoriteRequest.ActionType = cast.ToInt32(actionType)
+	//favoriteRequest.UserID = int64(userId)
+	//favoriteRequest.Token = token
+	//spew.Dump("=======================controller:favoriteRequest", favoriteRequest)
+	//
+	//if err := service.FavoriteAction(favoriteRequest); err != nil {
+	//	zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
+	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
+	//} else {
+	//	ResponseSuccess(c, CodeSuccess, nil)
+	//}
+
+	likeStatus, err := service.GetLikeStatus(videoId, userId)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
+		fmt.Println("点赞失败" + err.Error())
+		return
+	}
+	fmt.Println("!!!!!", likeStatus)
+	fmt.Println("!!!!!", actionType == "1" && !likeStatus)
+	fmt.Println("!!!!!", actionType == "2" || likeStatus)
+
+	if actionType == "1" && !likeStatus { //点赞
+
+		err := service.LikeAction(userId, videoId)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
+			fmt.Println("点赞失败" + err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞成功"})
+		return
+
+	} else if actionType == "2" || likeStatus { //取消点赞
+
+		err := service.CancelLikeAction(userId, videoId)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "取消点赞失败"})
+			fmt.Println("取消点赞失败" + err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "取消点赞成功"})
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "业务出错"})
+	return
 
 }
 

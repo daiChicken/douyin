@@ -14,3 +14,7 @@ const split = ":"
 func GetVideoCommentKey(videoId int) string {
 	return "video" + split + "comment" + split + strconv.Itoa(videoId)
 }
+
+func GetVideoLikeKey(videoId int) string {
+	return "video" + split + "like" + split + strconv.Itoa(videoId)
+}

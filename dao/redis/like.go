@@ -1,5 +1,7 @@
 package redis
 
+import "github.com/go-redis/redis"
+
 /**
  * @author  daijizai
  * @date  2022/6/12 22:34
@@ -7,16 +9,16 @@ package redis
  * @description
  */
 
-func AddUserToVideoSet(key string, userId int) error {
-	_, err := rdb.SAdd(key, userId).Result()
+func AddUserToVideoSet(key string, userId int, txPipeline redis.Pipeliner) error {
+	_, err := txPipeline.SAdd(key, userId).Result()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func RemoveUserFromVideoSet(key string, userId int) error {
-	_, err := rdb.SRem(key, userId).Result()
+func RemoveUserFromVideoSet(key string, userId int, txPipeline redis.Pipeliner) error {
+	_, err := txPipeline.SRem(key, userId).Result()
 	if err != nil {
 		return err
 	}
@@ -39,16 +41,16 @@ func GetLikeStatus(key string, userId int) (bool, error) {
 	return result, err
 }
 
-func AddVideoToUserSet(key string, VideoId int) error {
-	_, err := rdb.SAdd(key, VideoId).Result()
+func AddVideoToUserSet(key string, VideoId int, txPipeline redis.Pipeliner) error {
+	_, err := txPipeline.SAdd(key, VideoId).Result()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func RemoveVideoFromUserSet(key string, VideoId int) error {
-	_, err := rdb.SRem(key, VideoId).Result()
+func RemoveVideoFromUserSet(key string, VideoId int, txPipeline redis.Pipeliner) error {
+	_, err := txPipeline.SRem(key, VideoId).Result()
 	if err != nil {
 		return err
 	}
@@ -61,4 +63,8 @@ func ListLikedVideo(key string) ([]string, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func GetRDB() *redis.Client {
+	return rdb
 }

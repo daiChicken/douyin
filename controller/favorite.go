@@ -2,11 +2,13 @@ package controller
 
 import (
 	"BytesDanceProject/model"
+	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
 	"go.uber.org/zap"
 	"net/http"
-	"strings"
 )
 
 //type FavoriteActionResponse struct {
@@ -32,43 +34,56 @@ type VideoList struct {
 // FavoriteAction no practical effect, just check if token is valid
 func FavoriteAction(c *gin.Context) {
 	var favoriteRequest model.FavoriteRequest
-	_ = c.ShouldBindJSON(favoriteRequest)
-	tmp := c.Request.Header.Get("Authorization")
-	token := strings.SplitN(tmp, " ", 2)[1]
+	//_ = c.ShouldBindJSON(favoriteRequest)
+	//tmp := c.Request.Header.Get("Authorization")
+	token := c.Query("token")
 
-	if _, exist := usersLoginInfo[token]; exist {
-		if err := service.FavoriteAction(favoriteRequest); err != nil {
-			zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
-		} else {
-			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "点赞成功~"})
-		}
-	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	claim, err := jwt.ParseToken(token)
+
+	if err != nil {
+		zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
 	}
+	userId := claim.UserID
+	actionType := c.Query("action_type")
+	favoriteRequest.ActionType = cast.ToInt32(actionType)
+	favoriteRequest.UserID = int64(userId)
+	favoriteRequest.Token = token
+	spew.Dump("=======================controller:favoriteRequest", favoriteRequest)
+
+	if err := service.FavoriteAction(favoriteRequest); err != nil {
+		zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
+	} else {
+		ResponseSuccess(c, CodeSuccess, nil)
+	}
+
 }
 
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
-	tmp := c.Request.Header.Get("Authorization")
-	token := strings.SplitN(tmp, " ", 2)[1]
-
 	var favoriteListRequest model.FavoriteListRequest
-	_ = c.ShouldBindJSON(favoriteListRequest)
 
-	if _, exist := usersLoginInfo[token]; exist {
-		if err := service.FavoriteList(favoriteListRequest); err != nil {
-			zap.L().Error("service.FavoriteList() failed", zap.Error(err))
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败哦！"})
-		} else {
-			c.JSON(http.StatusOK, VideoListResponse{
-				Response: Response{
-					StatusCode: 0,
-				},
-				VideoList: DemoVideos,
-			})
-		}
-	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	token := c.Query("token")
+	claim, err := jwt.ParseToken(token)
+	if err != nil {
+		zap.L().Error("service.FavoriteAction() failed", zap.Error(err))
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败哦！"})
 	}
+	userId := claim.UserID
+	favoriteListRequest.Token = token
+	favoriteListRequest.UserID = int64(userId)
+
+	if err := service.FavoriteList(favoriteListRequest); err != nil {
+		zap.L().Error("service.FavoriteList() failed", zap.Error(err))
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败哦！"})
+	} else {
+		c.JSON(http.StatusOK, VideoListResponse{
+			Response: Response{
+				StatusCode: 0,
+			},
+			VideoList: DemoVideos,
+		})
+	}
+
 }

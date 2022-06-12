@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gin-gonic/gin v1.7.7
@@ -14,7 +15,6 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/qiniu/go-sdk/v7 v7.12.1
-	github.com/robfig/cron v1.2.0
 	github.com/spf13/cast v1.4.1
 	github.com/spf13/viper v1.11.0
 	go.uber.org/zap v1.21.0

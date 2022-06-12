@@ -4,17 +4,20 @@ import (
 	"BytesDanceProject/dao/mysql"
 	rds "BytesDanceProject/dao/redis"
 	"BytesDanceProject/model"
-	"github.com/robfig/cron"
-	"github.com/spf13/cast"
+	"fmt"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/go-redis/redis"
 	"go.uber.org/zap"
 )
 
-/*
-分析：
-	1、点赞直接存到redis
-	2、视频 - 用户 点赞关系：存到 mysql - video_like_relation
+type ListFavoriteMsg struct {
+	userID        int64  `json:"userID" db:"userID"`
+	videoID       string `json:"user_name" db:"user_name"`
+	FollowCount   int64  `json:"follow_count"`
+	FollowerCount int64  `json:"follower_count"`
+}
 
-*/
+var rdb *redis.Client
 
 //用户点赞的操作
 func FavoriteAction(p model.FavoriteRequest) error {
@@ -24,34 +27,45 @@ func FavoriteAction(p model.FavoriteRequest) error {
 		zap.Int64("videoID", p.VideoID),
 		zap.Int32("action_type", p.ActionType))
 	//
-	if err := rds.FavoriteForVideo(cast.ToString(p.UserID), cast.ToString(p.VideoID), p.ActionType); err != nil {
-		return err
-	}
 	favoriteActionData := model.VideoLikeRelation{
 		UserId:  p.UserID,
 		VideoId: p.VideoID,
 		Status:  p.ActionType,
 	}
-	if err := mysql.CreateFavoriteAction(&favoriteActionData); err != nil {
+	spew.Dump("==============================", favoriteActionData)
+	// 存到 mysql
+	dbWithTransaction, err := mysql.CreateFavoriteAction(&favoriteActionData)
+	if err != nil {
 		return err
 	}
 
-	c := cron.New()
-	c.AddFunc("0 */2 * * *", FavoriteCron)
+	//存到 redis:  用户：视频：点赞状态    视频：点赞数量
+	keyUserToVideo := rds.GetFavoriteKey(p.UserID, p.VideoID)
+	//keyVideoNum := rds.GetUserFavoriteKey(p.VideoID)
+
+	// 点赞
+	if p.ActionType == 1 {
+		rdb.SAdd(keyUserToVideo, p.ActionType)
+		if err := rdb.SAdd(keyUserToVideo, p.ActionType).Err(); err != nil {
+			fmt.Println("err = ", err)
+		}
+		dbWithTransaction.Commit()
+		return nil
+	}
+	rdb.SRem(keyUserToVideo, p.ActionType)
+
+	dbWithTransaction.Commit() //提交事务
 
 	return nil
 }
 
 // 点赞列表
 func FavoriteList(p model.FavoriteListRequest) error {
-	//uid := p.UserID
-	// 根据 uid 找到该 uid 所有点赞过的视频  videoID/AuthorID
-	// 根据 videoID 找到该视频所有的信息——从video表中拉出 play_url/ cover_url/ favorite_count/ comment_count/ is_favorite
-	// 根据 authorID 找到该 anthorID 的相关信息 nickname/followCount/followerCount/IsFollow
+	// 根据id获取喜爱列表
 
 	return nil
 }
 
-func FavoriteCron() {
-
-}
+//func FavoriteCron() {
+//
+//}

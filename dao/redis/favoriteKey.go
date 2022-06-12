@@ -1,11 +1,14 @@
 package redis
 
-//const (
-//	KeyPrefix               = "douyin"
-//	KeyVideoFavoritedZSetPf = "video:favorited:" // zset : 记录用户及点赞操作类型；参数是 video_id
-//)
-//
-//func getRedisKey(key string) string {
-//	return KeyPrefix + key
-//}
-//这里的代码重复声明了，我先注释掉
+import (
+	"github.com/spf13/cast"
+)
+
+// 用户-视频-点赞状态
+func GetFavoriteKey(userID int64, videroID int64) string {
+	return KeyPrefix + cast.ToString(userID) + ":" + cast.ToString(videroID)
+}
+
+func GetUserFavoriteKey(vedioID int64) string {
+	return KeyPrefix + cast.ToString(vedioID)
+}

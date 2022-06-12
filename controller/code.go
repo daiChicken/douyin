@@ -5,6 +5,7 @@ package controller
 
 type ResCode int64
 const(
+	CodeFocusSuccess = 0
 	CodeSuccess ResCode = 1000 +iota
 	CodeServerBusy
 	CodeNeedLogin
@@ -16,6 +17,7 @@ const(
 )
 
 var codeMsgMap = map[ResCode]string{
+	CodeFocusSuccess:			"操作成功",
 	CodeSuccess:				"success",
 	CodeServerBusy:				"服务繁忙",
 	CodeNeedLogin:				"需要登录",

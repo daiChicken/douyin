@@ -2,9 +2,11 @@ package controller
 
 import (
 	"BytesDanceProject/model"
+	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"strconv"
 )
 
 
@@ -16,22 +18,19 @@ type UserListResponse struct {
 // RelationAction implement follow or unfollow the user
 func RelationAction(c *gin.Context) {
 	//接收post请求携带的信息
-	p := new(model.RelationAction)
-	if err := c.ShouldBindJSON(p);err != nil{
-		//参数错误
-		// 类型断言，判断这个错误是否由binding引发的
-		_,ok := err.(validator.ValidationErrors)
-		if !ok {
-			ResponseError(c,CodeInvalidErr)
-			return
-		}
-		//走到这里说明是由binding引发的
-		ResponseError(c,CodeNotAccordStandard)
-		return
+	token := c.Query("token")
+	usemsg ,_ := jwt.ParseToken(token)
+	touserid ,_ := strconv.ParseInt(c.Query("to_user_id"),10,64)
+	actype ,_ := strconv.ParseInt(c.Query("action_type"),10,64)
+
+	p := &model.RelationAction{
+		UserID:     int64(usemsg.UserID),
+		ToUserID:   touserid,
+		ActionType: int32(actype),
 	}
 	//业务处理
 	service.RelationAction(p)
-	ResponseSuccess(c,CodeSuccess,nil)
+	ResponseSuccess(c,CodeFocusSuccess,nil)
 }
 
 // FollowList all users have same follow list
@@ -65,7 +64,8 @@ func FollowList(c *gin.Context) {
 	}
 	ResponseSuccessWithData(c,UserListResponse{
 		Response: Response{
-			StatusCode: 200,
+			StatusCode: 0,
+			StatusMsg: "Success",
 		},
 		UserList: userdata,
 	})
@@ -102,7 +102,8 @@ func FollowerList(c *gin.Context) {
 	}
 	ResponseSuccessWithData(c,UserListResponse{
 		Response: Response{
-			StatusCode: 200,
+			StatusCode: 0,
+			StatusMsg: "Success",
 		},
 		UserList: userdata,
 	})

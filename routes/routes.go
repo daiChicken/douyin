@@ -38,9 +38,9 @@ func Setup(mode string) *gin.Engine {
 		apiRouter.GET("/comment/list/", controller.CommentList)
 
 		// extra apis - II
-		apiRouter.POST("/relation/action/", controller.RelationAction)
-		apiRouter.GET("/relation/follow/list/", controller.FollowList)
-		apiRouter.GET("/relation/follower/list/", controller.FollowerList)
+		apiRouter.POST("/relation/action/", middlewares.JWTAuthMiddleware(), controller.RelationAction)
+		apiRouter.GET("/relation/follow/list/", middlewares.JWTAuthMiddleware(), controller.FollowList)
+		apiRouter.GET("/relation/follower/list/", middlewares.JWTAuthMiddleware(), controller.FollowerList)
 	}
 
 	return r

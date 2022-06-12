@@ -36,14 +36,19 @@ func UpdateCache(p *model.RelationAction,idname string,toidname string){
 	followmsg := &ListUserMsg{
 		ID:            p.ToUserID,
 		UserName:      toidname,
+		FollowCount: GetCountByID("follow",p.ToUserID),
+		FollowerCount: GetCountByID("follower",p.ToUserID),
 	}
 	followermsg := &ListUserMsg{
-		ID:            p.UserID,
-		UserName: 			idname,
+		ID:            	p.UserID,
+		UserName: 		idname,
+		FollowCount: GetCountByID("follow",p.UserID),
+		FollowerCount: GetCountByID("follower",p.UserID),
 	}
 	if p.ActionType == 1{
 		// 关注
 		// 先使用无序集合set 其放入顺序是在头部放入刚好可以满足需求
+		followmsg.FollowerCount ++
 		rdb.SAdd(keyfollow,followmsg)
 		if err := rdb.SAdd(keyfollower,followermsg).Err();err != nil{
 			fmt.Println("err = ", err)

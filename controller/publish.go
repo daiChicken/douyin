@@ -79,28 +79,24 @@ func PublishList(c *gin.Context) {
 		return
 	}
 
-	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	userId, err := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		fmt.Println(err.Error())
+		return
+	}
 
 	//获取用户发布的所有视频
 	originalVideoList, err := service.ListVideosByUser(int(userId))
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		fmt.Println(err.Error())
 		return
 	}
 
-	followCount, followerCount, err := mysql.GetCountByID(int64(userId))
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-		fmt.Println("评论发布失败" + err.Error())
-		return
-	}
-
-	fmt.Println("followCount, followerCount", followCount, followerCount)
-
-	isFollow := true
-	//获取视频发布者的所有粉丝
-	datas, err := service.GetFollowerList(&model.FollowListRE{
-		UserID: userId,
+	//获取登录用户的所有关注
+	followList, err := service.GetFollowList(&model.FollowListRE{
+		UserID: int64(claim.UserID),
 		Token:  "",
 	})
 	if err != nil {
@@ -108,36 +104,44 @@ func PublishList(c *gin.Context) {
 		fmt.Println(err.Error())
 		return
 	}
-	for _, data := range datas {
-		if claim.Username == data.UserName {
-			isFollow = true
-		}
-	}
-
-	//保存视频作者信息
-	author := User{
-		Id:            userId,
-		Name:          claim.Username,
-		FollowCount:   followCount,
-		FollowerCount: followerCount,
-
-		// todo: 完成以下数据的真实获取
-		IsFollow: isFollow,
-	}
 
 	//获取到的originalVideoList（model.Video）需要进行处理，使其变成满足前端接口的要求的videoList（controller.Video）
 	var videoList = make([]Video, len(*originalVideoList))
 	point := 0 //videoList的指针
 	for _, originalVideo := range *originalVideoList {
 
-		likeCount, err := service.CountLike(originalVideo.Id)
+		author := User{}
+		user, exist := service.GetUserByID(originalVideo.AuthorId)     //获取视频的作者
+		followCount, followerCount, err := mysql.GetCountByID(user.Id) //获取作者的关注数和粉丝数
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			fmt.Println(err.Error())
+			return
+		}
+
+		isFollow := false
+		for _, val := range followList {
+			if val.UserName == user.UserName { //视频作者存在于当前登录用户的关注列表中
+				isFollow = true
+			}
+		}
+
+		if exist {
+			author.Id = user.Id
+			author.Name = user.UserName
+			author.FollowCount = followCount
+			author.FollowerCount = followerCount
+			author.IsFollow = isFollow
+		}
+
+		likeCount, err := service.CountLike(originalVideo.Id) //获取视频的喜欢数
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
 			fmt.Println("获取发布列表失败" + err.Error())
 			return
 		}
 
-		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
+		commentCount, err := service.CountCommentByVideoId(originalVideo.Id) //获取视频的评论数
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
 			fmt.Println(err.Error())

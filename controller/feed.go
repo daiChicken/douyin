@@ -2,6 +2,7 @@ package controller
 
 import (
 	"BytesDanceProject/dao/mysql"
+	"BytesDanceProject/model"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
@@ -48,6 +49,16 @@ func Feed(c *gin.Context) {
 		return
 	}
 
+	followList, err := service.GetFollowList(&model.FollowListRE{
+		UserID: int64(claim.UserID),
+		Token:  "",
+	})
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+		fmt.Println("拉取feed流失败" + err.Error())
+		return
+	}
+
 	//获取到的originalVideoList（model.Video）需要进行处理，使其变成满足前端接口的要求的videoList（controller.Video）
 	var videoList = make([]Video, len(*originalVideoList))
 	point := 0 //videoList的指针
@@ -64,14 +75,19 @@ func Feed(c *gin.Context) {
 			return
 		}
 
+		isFollow := false
+		for _, val := range followList {
+			if val.UserName == user.UserName {
+				isFollow = true
+			}
+		}
+
 		if exist {
 			author.Id = user.Id
 			author.Name = user.UserName
 			author.FollowCount = followCount
 			author.FollowerCount = followerCount
-
-			// todo: 完成以下数据的真实获取
-			author.IsFollow = false
+			author.IsFollow = isFollow
 		}
 
 		likeCount, err := service.CountLike(originalVideo.Id)

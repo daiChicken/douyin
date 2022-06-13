@@ -2,6 +2,7 @@ package controller
 
 import (
 	"BytesDanceProject/dao/mysql"
+	"BytesDanceProject/model"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
@@ -106,9 +107,25 @@ func FavoriteList(c *gin.Context) {
 		return
 	}
 
-	userId, _ := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	userId, err := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败"})
+		fmt.Println("获取点赞列表失败" + err.Error())
+		return
+	}
 
 	originalVideoList, err := service.ListLikeVideo(int(userId))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败"})
+		fmt.Println("获取点赞列表失败" + err.Error())
+		return
+	}
+
+	//获取登录用户的所有关注
+	followList, err := service.GetFollowList(&model.FollowListRE{
+		UserID: int64(claim.UserID),
+		Token:  "",
+	})
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败"})
 		fmt.Println("获取点赞列表失败" + err.Error())
@@ -131,14 +148,19 @@ func FavoriteList(c *gin.Context) {
 			return
 		}
 
+		isFollow := false
+		for _, val := range followList {
+			if val.UserName == user.UserName { //视频作者存在于当前登录用户的关注列表中
+				isFollow = true
+			}
+		}
+
 		if exist {
 			author.Id = user.Id
 			author.Name = user.UserName
 			author.FollowCount = followCount
 			author.FollowerCount = followerCount
-
-			// todo: 完成以下数据的真实获取
-			author.IsFollow = false
+			author.IsFollow = isFollow
 		}
 
 		likeCount, err := service.CountLike(originalVideo.Id)

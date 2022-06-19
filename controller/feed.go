@@ -28,10 +28,15 @@ func Feed(c *gin.Context) {
 
 	token := c.Query("token")
 
-	claim, err := jwt.ParseToken(token)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
-		fmt.Println("拉取feed流失败" + err.Error())
+	var claim = new(jwt.MyClaims)
+	claim.UserID = -1
+	var err error
+	if token != "" {
+		claim, err = jwt.ParseToken(token)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
+		}
 	}
 
 	//获取参数

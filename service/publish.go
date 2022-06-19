@@ -105,18 +105,27 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 	if err != nil {
 		return err
 	}
+	fmt.Println("开始上传")
 
 	//起一个协程实现上传的异步
 	go func() {
 		//time.Sleep(time.Duration(5) * time.Second)//可供测试事务使用
-		err := formUploader.Put(context.Background(), &ret, upToken,
-			videoKey, data, file.Size, &putExtra)
+
+		retryCount := 3 //如果上传出现错位，重试3次
+		err = errors.New("")
+		for err != nil && retryCount != 0 {
+			err = formUploader.Put(context.Background(), &ret, upToken,
+				videoKey, data, file.Size, &putExtra)
+			retryCount--
+		}
+
 		if err != nil {
 			//问题：如果此处出现了问题导致上传失败，前端显示的也是上传成功。err信息没办法及时返回给controller
 			fmt.Println("formUploader.Put()上传失败，错误信息：", err.Error())
 			dbWithTransaction.Rollback() //事务回滚
 			return
 		}
+
 		dbWithTransaction.Commit()            //提交事务
 		fmt.Println("formUploader.Put()上传成功") //本行供测试使用
 	}()

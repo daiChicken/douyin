@@ -111,7 +111,7 @@ func UploadVideo(file *multipart.FileHeader, title string, authorId int) (err er
 	go func() {
 		//time.Sleep(time.Duration(5) * time.Second)//可供测试事务使用
 
-		retryCount := 3 //如果上传出现错位，重试3次
+		retryCount := 3 //如果上传出现错误，重试3次
 		err = errors.New("")
 		for err != nil && retryCount != 0 {
 			err = formUploader.Put(context.Background(), &ret, upToken,

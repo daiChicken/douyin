@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"BytesDanceProject/dao/mysql"
-	"BytesDanceProject/model"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
@@ -39,20 +37,16 @@ func Publish(c *gin.Context) {
 	//获取文件
 	file, err := c.FormFile("data")
 	if err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println(err.Error())
 		return
 	}
 
 	//上传文件到七牛云空间
 	err = service.UploadVideo(file, title, claim.UserId)
 	if err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println(err.Error())
 		return
 	}
 
@@ -67,14 +61,14 @@ func Publish(c *gin.Context) {
 func PublishList(c *gin.Context) {
 	userIdInterface, exists := c.Get("userId")
 	if !exists {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		return
 	}
 	activeUserId := userIdInterface.(int)
 
 	userId, err := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		fmt.Println(err.Error())
 		return
 	}
@@ -82,18 +76,7 @@ func PublishList(c *gin.Context) {
 	//获取用户发布的所有视频
 	originalVideoList, err := service.ListVideosByUser(int(userId))
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
-		fmt.Println(err.Error())
-		return
-	}
-
-	//获取登录用户的所有关注
-	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(activeUserId),
-		Token:  "",
-	})
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		fmt.Println(err.Error())
 		return
 	}
@@ -103,25 +86,32 @@ func PublishList(c *gin.Context) {
 	point := 0 //videoList的指针
 	for _, originalVideo := range *originalVideoList {
 
-		user, err := service.GetUserByID(originalVideo.AuthorId) //获取视频的作者
+		user, err := service.GetUser(originalVideo.AuthorId) //获取视频的作者
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println(err.Error())
 			return
 		}
 
-		followCount, followerCount, err := mysql.GetCountByID(user.Id) //获取作者的关注数和粉丝数
+		followerCount, err := service.CountFollower(int(user.Id))
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
-			fmt.Println(err.Error())
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
 			return
 		}
 
-		isFollow := false
-		for _, val := range followList {
-			if val.UserName == user.UserName { //视频作者存在于当前登录用户的关注列表中
-				isFollow = true
-			}
+		followCount, err := service.CountFollowee(int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
+		}
+
+		isFollow, err := service.CheckFollowStatus(activeUserId, int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
 		}
 
 		author := User{
@@ -134,21 +124,21 @@ func PublishList(c *gin.Context) {
 
 		likeCount, err := service.CountLike(originalVideo.Id) //获取视频的喜欢数
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("获取发布列表失败" + err.Error())
 			return
 		}
 
 		commentCount, err := service.CountCommentByVideoId(originalVideo.Id) //获取视频的评论数
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println(err.Error())
 			return
 		}
 
 		likeStatus, err := service.GetLikeStatus(originalVideo.Id, activeUserId)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println(err.Error())
 			return
 		}

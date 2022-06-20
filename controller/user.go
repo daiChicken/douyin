@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"BytesDanceProject/model"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"fmt"
@@ -26,46 +25,50 @@ type UserResponse struct {
 func UserInfo(c *gin.Context) {
 	userIdInterface, exists := c.Get("userId")
 	if !exists {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		return
 	}
 	activeUserId := userIdInterface.(int)
+	fmt.Println("@@@", activeUserId)
 
-	//获取登录用户的所有关注
-	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(activeUserId),
-		Token:  "",
-	})
+	userId, err := strconv.Atoi(c.Query("user_id"))
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发用户信息失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		fmt.Println(err.Error())
 		return
 	}
+	fmt.Println("!!!", userId)
 
-	userId, err := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	followerCount, err := service.CountFollower(userId)
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取用户信息失败"})
-		fmt.Println(err.Error())
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println("获取点赞列表失败" + err.Error())
 		return
 	}
 
-	follower, follow := service.GetUserInfo(userId)
+	followCount, err := service.CountFollowee(userId)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println("获取点赞列表失败" + err.Error())
+		return
+	}
 
-	user, err := service.GetUserByID(int(userId))
-	isFollow := false
-	for _, val := range followList {
-		if val.UserName == user.UserName { //获取信息的用户存在于当前登录用户的关注列表中
-			isFollow = true
-		}
+	user, err := service.GetUser(userId)
+
+	isFollow, err := service.CheckFollowStatus(activeUserId, int(user.Id))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println("获取点赞列表失败" + err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, UserResponse{
 		Response: Response{StatusCode: 0, StatusMsg: "成功获取用户信息！"},
 		User: User{
-			Id:            userId,
+			Id:            int64(userId),
 			Name:          user.UserName,
-			FollowCount:   follow,
-			FollowerCount: follower,
+			FollowCount:   followCount,
+			FollowerCount: followerCount,
 			IsFollow:      isFollow,
 		},
 	})

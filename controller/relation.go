@@ -1,11 +1,10 @@
 package controller
 
 import (
-	"BytesDanceProject/model"
-	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
+	"net/http"
 	"strconv"
 )
 
@@ -14,96 +13,188 @@ type UserListResponse struct {
 	UserList []User `json:"user_list"`
 }
 
-// RelationAction implement follow or unfollow the user
+// RelationAction 关注操作
 func RelationAction(c *gin.Context) {
-	//接收post请求携带的信息
-	token := c.Query("token")
-	usemsg, _ := jwt.ParseToken(token)
-	touserid, _ := strconv.ParseInt(c.Query("to_user_id"), 10, 64)
-	actype, _ := strconv.ParseInt(c.Query("action_type"), 10, 64)
-
-	p := &model.RelationAction{
-		UserID:     int64(usemsg.UserId),
-		ToUserID:   touserid,
-		ActionType: int32(actype),
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "关注失败"})
+		return
 	}
-	//业务处理
-	service.RelationAction(p)
-	ResponseSuccess(c, CodeFocusSuccess, nil)
+	activeUserId := userIdInterface.(int)
+
+	toUserId, err := strconv.Atoi(c.Query("to_user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "关注失败"})
+		fmt.Println("关注失败" + err.Error())
+		return
+	}
+
+	actionType := c.Query("action_type") //1-关注，2-取消关注
+
+	if actionType == "1" {
+		//关注操作
+		err := service.Follow(activeUserId, toUserId)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "关注失败"})
+			fmt.Println("关注失败" + err.Error())
+			return
+		}
+
+		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "关注成功！"})
+		return
+	} else if actionType == "2" {
+		//取关操作
+		err := service.Unfollow(activeUserId, int(toUserId))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "取关失败"})
+			fmt.Println("取关失败" + err.Error())
+			return
+		}
+
+		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "取关成功！"})
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "关注失败"})
+	fmt.Println("actionType错误")
+	return
 }
 
-// FollowList all users have same follow list
+// FollowList 关注列表
 func FollowList(c *gin.Context) {
-	// 接收参数（GET)
-	p := &model.FollowListRE{}
-	if err := c.ShouldBindQuery(p); err != nil {
-		//参数错误
-		_, ok := err.(validator.ValidationErrors)
-		if !ok {
-			ResponseError(c, CodeInvalidErr)
+
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		return
+	}
+	activeUserId := userIdInterface.(int)
+
+	userId, err := strconv.Atoi(c.Query("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println("操作失败" + err.Error())
+		return
+	}
+
+	followerList, err := service.ListFollowee(userId)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println("操作失败" + err.Error())
+		return
+	}
+
+	var userList = make([]User, len(*followerList))
+	point := 0 //videoList的指针
+	for _, user := range *followerList {
+
+		followerCount, err := service.CountFollower(int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("操作失败" + err.Error())
 			return
 		}
-		//走到这里说明是由binding引发的
-		ResponseError(c, CodeNotAccordStandard)
-		return
+
+		followeeCount, err := service.CountFollowee(int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("操作失败" + err.Error())
+			return
+		}
+
+		isFollow, err := service.CheckFollowStatus(activeUserId, int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("操作失败" + err.Error())
+			return
+		}
+
+		userList[point] = User{
+			Id:            user.Id,
+			Name:          user.UserName,
+			FollowCount:   followeeCount,
+			FollowerCount: followerCount,
+			IsFollow:      isFollow,
+		}
+		point++
 	}
-	// 逻辑处理
-	data, err := service.GetFollowList(p)
-	if err != nil {
-		ResponseError(c, CodeServerBusy)
-		return
-	}
-	userdata := make([]User, len(data))
-	for idx, tdata := range data {
-		userdata[idx].Id = tdata.ID
-		userdata[idx].Name = tdata.UserName
-		userdata[idx].FollowCount = tdata.FollowCount
-		userdata[idx].FollowerCount = tdata.FollowerCount
-		userdata[idx].IsFollow = tdata.IsFollow
-	}
-	ResponseSuccessWithData(c, UserListResponse{
+
+	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
-			StatusMsg:  "Success",
+			StatusMsg:  "成功获取关注列表",
 		},
-		UserList: userdata,
+		UserList: userList,
 	})
+	return
+
 }
 
-// FollowerList all users have same follower list
+// FollowerList 粉丝列表
 func FollowerList(c *gin.Context) {
-	// 接收参数（GET)
-	p := &model.FollowListRE{}
-	if err := c.ShouldBindQuery(p); err != nil {
-		//参数错误
-		_, ok := err.(validator.ValidationErrors)
-		if !ok {
-			ResponseError(c, CodeInvalidErr)
+
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
+		return
+	}
+	activeUserId := userIdInterface.(int)
+
+	userId, err := strconv.Atoi(c.Query("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println(err.Error())
+		return
+	}
+
+	followerList, err := service.ListFollower(userId)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println(err.Error())
+		return
+	}
+
+	var userList = make([]User, len(*followerList))
+	point := 0 //videoList的指针
+	for _, user := range *followerList {
+
+		followerCount, err := service.CountFollower(int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println(err.Error())
 			return
 		}
-		//走到这里说明是由binding引发的
-		ResponseError(c, CodeNotAccordStandard)
-		return
+
+		followeeCount, err := service.CountFollowee(int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println(err.Error())
+			return
+		}
+
+		isFollow, err := service.CheckFollowStatus(activeUserId, int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println(err.Error())
+			return
+		}
+
+		userList[point] = User{
+			Id:            user.Id,
+			Name:          user.UserName,
+			FollowCount:   followeeCount,
+			FollowerCount: followerCount,
+			IsFollow:      isFollow,
+		}
+		point++
 	}
-	// 逻辑处理
-	data, err := service.GetFollowerList(p)
-	if err != nil {
-		ResponseError(c, CodeServerBusy)
-		return
-	}
-	userdata := make([]User, len(data))
-	for idx, tdata := range data {
-		userdata[idx].Id = tdata.ID
-		userdata[idx].Name = tdata.UserName
-		userdata[idx].FollowCount = tdata.FollowCount
-		userdata[idx].FollowerCount = tdata.FollowerCount
-		userdata[idx].IsFollow = tdata.IsFollow
-	}
-	ResponseSuccessWithData(c, UserListResponse{
+
+	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
-			StatusMsg:  "Success",
+			StatusMsg:  "成功获取关注列表",
 		},
-		UserList: userdata,
+		UserList: userList,
 	})
+	return
 }

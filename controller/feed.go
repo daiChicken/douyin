@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"BytesDanceProject/dao/mysql"
-	"BytesDanceProject/model"
 	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
@@ -34,7 +32,7 @@ func Feed(c *gin.Context) {
 	if token != "" {
 		claim, err = jwt.ParseToken(token)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("拉取feed流失败" + err.Error())
 		}
 	}
@@ -49,17 +47,7 @@ func Feed(c *gin.Context) {
 	//获取视频列表及下一次请求的时间戳
 	originalVideoList, nextTime, err := service.ListVideos(maxVideoCount, latestTime)
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
-		fmt.Println("拉取feed流失败" + err.Error())
-		return
-	}
-
-	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(claim.UserId),
-		Token:  "",
-	})
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		fmt.Println("拉取feed流失败" + err.Error())
 		return
 	}
@@ -71,24 +59,32 @@ func Feed(c *gin.Context) {
 
 		//根据authorId获取author对象
 		//authorId := originalVideo.AuthorId
-		user, err := service.GetUserByID(originalVideo.AuthorId)
+		user, err := service.GetUser(originalVideo.AuthorId)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
-			fmt.Println("拉取feed流失败" + err.Error())
-			return
-		}
-		followCount, followerCount, err := mysql.GetCountByID(int64(user.Id))
-		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("拉取feed流失败" + err.Error())
 			return
 		}
 
-		isFollow := false
-		for _, val := range followList {
-			if val.UserName == user.UserName {
-				isFollow = true
-			}
+		followerCount, err := service.CountFollower(int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
+		}
+
+		followCount, err := service.CountFollowee(int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
+		}
+
+		isFollow, err := service.CheckFollowStatus(claim.UserId, int(user.Id))
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
 		}
 
 		author := User{
@@ -101,21 +97,21 @@ func Feed(c *gin.Context) {
 
 		likeCount, err := service.CountLike(originalVideo.Id)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("拉取feed流失败" + err.Error())
 			return
 		}
 
 		commentCount, err := service.CountCommentByVideoId(originalVideo.Id)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("拉取feed流失败" + err.Error())
 			return
 		}
 
 		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserId)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println(err.Error())
 			return
 		}

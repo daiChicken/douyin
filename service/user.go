@@ -82,16 +82,6 @@ func Login(username string, password string) (int64, error) {
 	return user.Id, nil
 }
 
-func GetUserInfo(userId int64) (int64, int64) {
-	followerTable, _ := mysql.GetFollower(userId)
-	FollowerCount := int64(len(followerTable))
-	followTable, _ := mysql.GetFollowed(userId)
-	FollowCount := int64(len(followTable))
-	return FollowerCount, FollowCount
-}
-
-// 根据 userId 获取 user 的所有能在单表中得到的信息
-func GetUserByID(userId int) (*model.User, error) {
-
+func GetUser(userId int) (*model.User, error) {
 	return mysql.GetUser(userId)
 }

@@ -23,6 +23,10 @@ func GetUserLikeKey(userId int) string {
 	return "user" + split + "like" + split + strconv.Itoa(userId)
 }
 
-func GetTokenKey(token string) string {
-	return "token" + split + token
+func GetFollowerKey(userId int) string {
+	return "user" + split + "follower" + split + strconv.Itoa(userId)
+}
+
+func GetFolloweeKey(userId int) string {
+	return "user" + split + "followee" + split + strconv.Itoa(userId)
 }

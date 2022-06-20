@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
 	"fmt"
@@ -28,22 +27,22 @@ func CommentAction(c *gin.Context) {
 
 	userIdInterface, exists := c.Get("userId")
 	if !exists {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		return
 	}
 	activeUserId := userIdInterface.(int)
 
 	usernameInterface, exists := c.Get("username")
 	if !exists {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		return
 	}
 	activeUsername := usernameInterface.(string)
 
 	videoId, err := strconv.Atoi(c.Query("video_id")) //被评论的视频的id
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-		fmt.Println("评论发布失败" + err.Error())
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+		fmt.Println("操作失败" + err.Error())
 		return
 	}
 
@@ -54,15 +53,29 @@ func CommentAction(c *gin.Context) {
 
 		originalComment, err := service.CreateComment(activeUserId, videoId, commentText, activeUsername)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("评论发布失败" + err.Error())
 			return
 		}
 
-		followCount, followerCount, err := mysql.GetCountByID(int64(activeUserId))
+		followerCount, err := service.CountFollower(originalComment.UserID)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
-			fmt.Println("评论发布失败" + err.Error())
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
+		}
+
+		followCount, err := service.CountFollowee(originalComment.UserID)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
+		}
+
+		isFollow, err := service.CheckFollowStatus(activeUserId, originalComment.UserID)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
 			return
 		}
 
@@ -72,7 +85,7 @@ func CommentAction(c *gin.Context) {
 
 			FollowCount:   followCount,   //关注总数
 			FollowerCount: followerCount, //粉丝总数
-			IsFollow:      false,         //关注关系【！！！！！！！！！！！！！！！！！！！】
+			IsFollow:      isFollow,
 		}
 
 		comment := Comment{
@@ -91,37 +104,44 @@ func CommentAction(c *gin.Context) {
 	} else if actionType == "2" { //删除评论
 		commentId, err := strconv.Atoi(c.Query("comment_id")) //要删除的评论的id（type==2时使用）
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论删除失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("评论删除失败" + err.Error())
 			return
 		}
 		err = service.DeleteComment(commentId)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论删除失败"})
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 			fmt.Println("评论删除失败" + err.Error())
 			return
 		}
 
-		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "成功删除评论"})
+		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "操作失败"})
 		return
 	}
 
-	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "actionType出错"})
+	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 }
 
 // CommentList 评论列表
 func CommentList(c *gin.Context) {
 
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
+		return
+	}
+	activeUserId := userIdInterface.(int)
+
 	videoId, err := strconv.Atoi(c.Query("video_id"))
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		fmt.Println("获取评论列表失败" + err.Error())
 		return
 	}
 
 	originalCommentList, err := service.ListComment(videoId)
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
 		fmt.Println("获取评论列表失败" + err.Error())
 		return
 	}
@@ -130,10 +150,24 @@ func CommentList(c *gin.Context) {
 	point := 0 //commentList的指针
 	for _, originalComment := range *originalCommentList {
 
-		followCount, followerCount, err := mysql.GetCountByID(int64(originalComment.UserID))
+		followerCount, err := service.CountFollower(originalComment.UserID)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-			fmt.Println("评论列表获取失败" + err.Error())
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
+		}
+
+		followCount, err := service.CountFollowee(originalComment.UserID)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
+			return
+		}
+
+		isFollow, err := service.CheckFollowStatus(activeUserId, originalComment.UserID)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+			fmt.Println("获取点赞列表失败" + err.Error())
 			return
 		}
 
@@ -143,7 +177,7 @@ func CommentList(c *gin.Context) {
 
 			FollowCount:   followCount,   //关注总数
 			FollowerCount: followerCount, //粉丝总数
-			IsFollow:      false,         //假数据【！！！！！！！！！！！！！！！！！！！】
+			IsFollow:      isFollow,
 		}
 
 		comment := Comment{

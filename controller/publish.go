@@ -47,7 +47,7 @@ func Publish(c *gin.Context) {
 	}
 
 	//上传文件到七牛云空间
-	err = service.UploadVideo(file, title, claim.UserID)
+	err = service.UploadVideo(file, title, claim.UserId)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -96,7 +96,7 @@ func PublishList(c *gin.Context) {
 
 	//获取登录用户的所有关注
 	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(claim.UserID),
+		UserID: int64(claim.UserId),
 		Token:  "",
 	})
 	if err != nil {
@@ -110,8 +110,13 @@ func PublishList(c *gin.Context) {
 	point := 0 //videoList的指针
 	for _, originalVideo := range *originalVideoList {
 
-		author := User{}
-		user, exist := service.GetUserByID(originalVideo.AuthorId)     //获取视频的作者
+		user, err := service.GetUserByID(originalVideo.AuthorId) //获取视频的作者
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
+			fmt.Println(err.Error())
+			return
+		}
+
 		followCount, followerCount, err := mysql.GetCountByID(user.Id) //获取作者的关注数和粉丝数
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
@@ -126,12 +131,12 @@ func PublishList(c *gin.Context) {
 			}
 		}
 
-		if exist {
-			author.Id = user.Id
-			author.Name = user.UserName
-			author.FollowCount = followCount
-			author.FollowerCount = followerCount
-			author.IsFollow = isFollow
+		author := User{
+			Id:            user.Id,
+			Name:          user.UserName,
+			FollowCount:   followCount,
+			FollowerCount: followerCount,
+			IsFollow:      isFollow,
 		}
 
 		likeCount, err := service.CountLike(originalVideo.Id) //获取视频的喜欢数
@@ -148,7 +153,7 @@ func PublishList(c *gin.Context) {
 			return
 		}
 
-		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserID)
+		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserId)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
 			fmt.Println(err.Error())

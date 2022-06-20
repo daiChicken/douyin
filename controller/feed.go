@@ -29,7 +29,7 @@ func Feed(c *gin.Context) {
 	token := c.Query("token")
 
 	var claim = new(jwt.MyClaims)
-	claim.UserID = -1
+	claim.UserId = -1
 	var err error
 	if token != "" {
 		claim, err = jwt.ParseToken(token)
@@ -55,7 +55,7 @@ func Feed(c *gin.Context) {
 	}
 
 	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(claim.UserID),
+		UserID: int64(claim.UserId),
 		Token:  "",
 	})
 	if err != nil {
@@ -71,8 +71,12 @@ func Feed(c *gin.Context) {
 
 		//根据authorId获取author对象
 		//authorId := originalVideo.AuthorId
-		author := User{}
-		user, exist := service.GetUserByID(originalVideo.AuthorId)
+		user, err := service.GetUserByID(originalVideo.AuthorId)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
+			fmt.Println("拉取feed流失败" + err.Error())
+			return
+		}
 		followCount, followerCount, err := mysql.GetCountByID(int64(user.Id))
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "拉取feed流失败"})
@@ -87,12 +91,12 @@ func Feed(c *gin.Context) {
 			}
 		}
 
-		if exist {
-			author.Id = user.Id
-			author.Name = user.UserName
-			author.FollowCount = followCount
-			author.FollowerCount = followerCount
-			author.IsFollow = isFollow
+		author := User{
+			Id:            user.Id,
+			Name:          user.UserName,
+			FollowCount:   followCount,
+			FollowerCount: followerCount,
+			IsFollow:      isFollow,
 		}
 
 		likeCount, err := service.CountLike(originalVideo.Id)
@@ -109,7 +113,7 @@ func Feed(c *gin.Context) {
 			return
 		}
 
-		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserID)
+		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserId)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
 			fmt.Println(err.Error())

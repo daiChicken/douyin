@@ -22,3 +22,7 @@ func GetVideoLikeKey(videoId int) string {
 func GetUserLikeKey(userId int) string {
 	return "user" + split + "like" + split + strconv.Itoa(userId)
 }
+
+func GetTokenKey(token string) string {
+	return "token" + split + token
+}

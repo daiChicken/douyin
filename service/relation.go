@@ -32,7 +32,7 @@ func GetFollowList(p *model.FollowListRE) (datas []model.UserFocus, err error) {
 	// 从redis 取得id切片
 	ids, err := redis.GetMsgListByID(KeyFocusList, p.UserID)
 	if err != nil {
-		zap.L().Error("redis.GetFollowIDList(p.UserID) failed err := ", zap.Error(err))
+		zap.L().Error("redis.GetFollowIDList(p.UserId) failed err := ", zap.Error(err))
 		return nil, err
 	}
 	// 先查询缓存
@@ -40,12 +40,12 @@ func GetFollowList(p *model.FollowListRE) (datas []model.UserFocus, err error) {
 		//  以下是缓存没有的情况下 查询数据库的逻辑，并重新设置缓存
 		datas, err = mysql.GetFollowList(p.UserID)
 		if err != nil {
-			zap.L().Error("mysql.GetFollowList(p.UserID) failed err := ", zap.Error(err))
+			zap.L().Error("mysql.GetFollowList(p.UserId) failed err := ", zap.Error(err))
 			return nil, err
 		}
 		//重新设置缓存
 		if err = redis.SetUserCache(KeyFollow, p.UserID, datas); err != nil {
-			zap.L().Error("redis.SetUserFollowCache(p.UserID,datas) failed err := ", zap.Error(err))
+			zap.L().Error("redis.SetUserFollowCache(p.UserId,datas) failed err := ", zap.Error(err))
 			return nil, err
 		}
 
@@ -86,7 +86,7 @@ func GetFollowerList(p *model.FollowListRE) (datas []model.UserFocus, err error)
 	// 从redis 取得id切片
 	ids, err := redis.GetMsgListByID(KeyFansList, p.UserID)
 	if err != nil {
-		zap.L().Error("redis.GetFollowIDList(p.UserID) failed err := ", zap.Error(err))
+		zap.L().Error("redis.GetFollowIDList(p.UserId) failed err := ", zap.Error(err))
 		return nil, err
 	}
 	// 根据id切片取各id的信息（关注、粉丝数）
@@ -94,13 +94,13 @@ func GetFollowerList(p *model.FollowListRE) (datas []model.UserFocus, err error)
 		// 说明没有缓存 则查询数据库并设置缓存
 		datas, err = mysql.GetFollowerList(p.UserID)
 		if err != nil {
-			zap.L().Error("mysql.GetFollowerList(p.UserID) failed err := ", zap.Error(err))
+			zap.L().Error("mysql.GetFollowerList(p.UserId) failed err := ", zap.Error(err))
 			return nil, err
 		}
 
 		// 重新设置缓存
 		if err = redis.SetUserCache(KeyFollower, p.UserID, datas); err != nil {
-			zap.L().Error("redis.SetUserFocusCache(p.UserID,datas) failed err := ", zap.Error(err))
+			zap.L().Error("redis.SetUserFocusCache(p.UserId,datas) failed err := ", zap.Error(err))
 			return nil, err
 		}
 	} else {

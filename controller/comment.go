@@ -41,7 +41,7 @@ func CommentAction(c *gin.Context) {
 		return
 	}
 
-	userId := claim.UserID
+	userId := claim.UserId
 
 	videoId, err := strconv.Atoi(c.Query("video_id")) //被评论的视频的id
 	if err != nil {

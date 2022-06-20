@@ -3,7 +3,7 @@ package routes
 import (
 	"BytesDanceProject/controller"
 	"BytesDanceProject/logger"
-	"BytesDanceProject/middlewares"
+	"BytesDanceProject/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,31 +16,31 @@ func Setup(mode string) *gin.Engine {
 
 	r := gin.New()
 	r.Static("/static", "./public")
-	//r.Use(logger.GinLogger(),logger.GinRecovery(true),middlewares.RateLimitMiddleware(time.Second,1))
+	//r.Use(logger.GinLogger(),logger.GinRecovery(true),middleware.RateLimitMiddleware(time.Second,1))
 	r.Use(logger.GinLogger(), logger.GinRecovery(true))
 
 	//设置一个路由组
 	apiRouter := r.Group("/douyin")
-	// apiRouter .Use(middlewares.JWTAuthMiddleware())
+	// apiRouter .Use(middleware.JWTAuth())
 	{
 		// basic apis
 		apiRouter.GET("/feed/", controller.Feed)
-		apiRouter.GET("/user/", middlewares.JWTAuthMiddleware(), controller.UserInfo)
+		apiRouter.GET("/user/", middleware.JWTAuth(), controller.UserInfo)
 		apiRouter.POST("/user/register/", controller.Register)
 		apiRouter.POST("/user/login/", controller.Login)
 		apiRouter.POST("/publish/action/", controller.Publish)
-		apiRouter.GET("/publish/list/", controller.PublishList)
+		apiRouter.GET("/publish/list/", middleware.JWTAuth(), controller.PublishList)
 
 		// extra apis - I
-		apiRouter.POST("/favorite/action/", middlewares.JWTAuthMiddleware(), controller.FavoriteAction)
-		apiRouter.GET("/favorite/list/", middlewares.JWTAuthMiddleware(), controller.FavoriteList)
-		apiRouter.POST("/comment/action/", controller.CommentAction)
-		apiRouter.GET("/comment/list/", controller.CommentList)
+		apiRouter.POST("/favorite/action/", middleware.JWTAuth(), controller.FavoriteAction)
+		apiRouter.GET("/favorite/list/", middleware.JWTAuth(), controller.FavoriteList)
+		apiRouter.POST("/comment/action/", middleware.JWTAuth(), controller.CommentAction)
+		apiRouter.GET("/comment/list/", middleware.JWTAuth(), controller.CommentList)
 
 		// extra apis - II
-		apiRouter.POST("/relation/action/", middlewares.JWTAuthMiddleware(), controller.RelationAction)
-		apiRouter.GET("/relation/follow/list/", middlewares.JWTAuthMiddleware(), controller.FollowList)
-		apiRouter.GET("/relation/follower/list/", middlewares.JWTAuthMiddleware(), controller.FollowerList)
+		apiRouter.POST("/relation/action/", middleware.JWTAuth(), controller.RelationAction)
+		apiRouter.GET("/relation/follow/list/", middleware.JWTAuth(), controller.FollowList)
+		apiRouter.GET("/relation/follower/list/", middleware.JWTAuth(), controller.FollowerList)
 	}
 
 	return r

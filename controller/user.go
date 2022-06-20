@@ -24,21 +24,16 @@ type UserResponse struct {
 
 // UserInfo 用户信息 获取用户的 id、昵称，如果实现社交部分的功能，还会返回关注数和粉丝数
 func UserInfo(c *gin.Context) {
-	token := c.Query("token")
-
-	claim, err := jwt.ParseToken(token)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取用户信息失败"})
-		fmt.Println("获取用户信息失败", err.Error())
-		return
-	} else if claim.Valid() != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取用户信息失败"})
-		fmt.Println("获取用户信息失败", claim.Valid().Error())
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
 		return
 	}
+	activeUserId := userIdInterface.(int)
+
 	//获取登录用户的所有关注
 	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(claim.UserId),
+		UserID: int64(activeUserId),
 		Token:  "",
 	})
 	if err != nil {

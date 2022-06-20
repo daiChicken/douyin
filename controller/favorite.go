@@ -3,7 +3,6 @@ package controller
 import (
 	"BytesDanceProject/dao/mysql"
 	"BytesDanceProject/model"
-	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
 	"fmt"
@@ -12,9 +11,6 @@ import (
 	"net/http"
 	"strconv"
 )
-
-//type FavoriteActionResponse struct {
-//}
 
 type FavoriteListResponse struct {
 	Response
@@ -35,18 +31,13 @@ type VideoList struct {
 // FavoriteAction 点赞操作
 func FavoriteAction(c *gin.Context) {
 
-	token := c.Query("token")
-
-	claim, err := jwt.ParseToken(token)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
-		return
-	} else if claim.Valid() != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: claim.Valid().Error()})
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
 		return
 	}
+	activeUserId := userIdInterface.(int)
 
-	userId := claim.UserId               //当前登录用户id，点赞用户id
 	actionType := c.Query("action_type") //1-点赞，2-取消点赞
 
 	videoId, err := strconv.Atoi(c.Query("video_id")) //被点赞的视频的id
@@ -56,7 +47,7 @@ func FavoriteAction(c *gin.Context) {
 		return
 	}
 
-	likeStatus, err := service.GetLikeStatus(videoId, userId)
+	likeStatus, err := service.GetLikeStatus(videoId, activeUserId)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
 		fmt.Println("点赞失败" + err.Error())
@@ -65,24 +56,24 @@ func FavoriteAction(c *gin.Context) {
 
 	if actionType == "1" && !likeStatus { //点赞
 
-		err := service.LikeAction(userId, videoId)
+		err := service.LikeAction(activeUserId, videoId)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
 			fmt.Println("点赞失败" + err.Error())
 			return
 		}
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞成功"})
+		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "点赞成功"})
 		return
 
 	} else if actionType == "2" || likeStatus { //取消点赞
 
-		err := service.CancelLikeAction(userId, videoId)
+		err := service.CancelLikeAction(activeUserId, videoId)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "取消点赞失败"})
 			fmt.Println("取消点赞失败" + err.Error())
 			return
 		}
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "取消点赞成功"})
+		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "取消点赞成功"})
 		return
 	}
 
@@ -93,19 +84,12 @@ func FavoriteAction(c *gin.Context) {
 
 // FavoriteList 获取点赞列表
 func FavoriteList(c *gin.Context) {
-	//用户鉴权
-	token := c.Query("token")
-
-	claim, err := jwt.ParseToken(token)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
-		fmt.Println("获取发布列表失败", err.Error())
-		return
-	} else if claim.Valid() != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
-		fmt.Println("获取发布列表失败", claim.Valid().Error())
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
 		return
 	}
+	activeUserId := userIdInterface.(int)
 
 	userId, err := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	if err != nil {
@@ -123,7 +107,7 @@ func FavoriteList(c *gin.Context) {
 
 	//获取登录用户的所有关注
 	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(claim.UserId),
+		UserID: int64(activeUserId),
 		Token:  "",
 	})
 	if err != nil {
@@ -183,7 +167,7 @@ func FavoriteList(c *gin.Context) {
 			return
 		}
 
-		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserId)
+		likeStatus, err := service.GetLikeStatus(originalVideo.Id, activeUserId)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取点赞列表失败"})
 			fmt.Println(err.Error())

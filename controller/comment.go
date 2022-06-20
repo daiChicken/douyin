@@ -2,7 +2,6 @@ package controller
 
 import (
 	"BytesDanceProject/dao/mysql"
-	"BytesDanceProject/pkg/jwt"
 	"BytesDanceProject/service"
 	"BytesDanceProject/tool"
 	"fmt"
@@ -27,21 +26,19 @@ type CommentResponse struct {
 // CommentAction 发表评论
 func CommentAction(c *gin.Context) {
 
-	//用户鉴权
-	token := c.Query("token")
-
-	claim, err := jwt.ParseToken(token)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论失败"})
-		fmt.Println("评论失败", err.Error())
-		return
-	} else if claim.Valid() != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论失败"})
-		fmt.Println("评论失败", claim.Valid().Error())
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
 		return
 	}
+	activeUserId := userIdInterface.(int)
 
-	userId := claim.UserId
+	usernameInterface, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
+		return
+	}
+	activeUsername := usernameInterface.(string)
 
 	videoId, err := strconv.Atoi(c.Query("video_id")) //被评论的视频的id
 	if err != nil {
@@ -55,14 +52,14 @@ func CommentAction(c *gin.Context) {
 	if actionType == "1" { //发布评论
 		commentText := c.Query("comment_text") //评论内容（type==1时使用）
 
-		originalComment, err := service.CreateComment(userId, videoId, commentText, claim.Username)
+		originalComment, err := service.CreateComment(activeUserId, videoId, commentText, activeUsername)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
 			fmt.Println("评论发布失败" + err.Error())
 			return
 		}
 
-		followCount, followerCount, err := mysql.GetCountByID(int64(userId))
+		followCount, followerCount, err := mysql.GetCountByID(int64(activeUserId))
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "评论发布失败"})
 			fmt.Println("评论发布失败" + err.Error())
@@ -70,8 +67,8 @@ func CommentAction(c *gin.Context) {
 		}
 
 		user := User{
-			Id:   int64(userId),
-			Name: claim.Username,
+			Id:   int64(activeUserId),
+			Name: activeUsername,
 
 			FollowCount:   followCount,   //关注总数
 			FollowerCount: followerCount, //粉丝总数
@@ -114,18 +111,6 @@ func CommentAction(c *gin.Context) {
 
 // CommentList 评论列表
 func CommentList(c *gin.Context) {
-
-	//用户鉴权
-	claim, err := jwt.ParseToken(c.Query("token"))
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-		fmt.Println("获取评论列表失败", err.Error())
-		return
-	} else if claim.Valid() != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取评论列表失败"})
-		fmt.Println("获取评论列表失败", claim.Valid().Error())
-		return
-	}
 
 	videoId, err := strconv.Atoi(c.Query("video_id"))
 	if err != nil {

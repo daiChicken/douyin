@@ -65,19 +65,12 @@ func Publish(c *gin.Context) {
 
 // PublishList 获取发布列表
 func PublishList(c *gin.Context) {
-	//用户鉴权
-	token := c.Query("token")
-
-	claim, err := jwt.ParseToken(token)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
-		fmt.Println("获取发布列表失败", err.Error())
-		return
-	} else if claim.Valid() != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
-		fmt.Println("获取发布列表失败", claim.Valid().Error())
+	userIdInterface, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "点赞失败"})
 		return
 	}
+	activeUserId := userIdInterface.(int)
 
 	userId, err := strconv.ParseInt(c.Query("user_id"), 10, 64)
 	if err != nil {
@@ -96,7 +89,7 @@ func PublishList(c *gin.Context) {
 
 	//获取登录用户的所有关注
 	followList, err := service.GetFollowList(&model.FollowListRE{
-		UserID: int64(claim.UserId),
+		UserID: int64(activeUserId),
 		Token:  "",
 	})
 	if err != nil {
@@ -153,7 +146,7 @@ func PublishList(c *gin.Context) {
 			return
 		}
 
-		likeStatus, err := service.GetLikeStatus(originalVideo.Id, claim.UserId)
+		likeStatus, err := service.GetLikeStatus(originalVideo.Id, activeUserId)
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "获取发布列表失败"})
 			fmt.Println(err.Error())
